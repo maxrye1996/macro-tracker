@@ -1,0 +1,39 @@
+.screen {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  max-width: 460px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 32px) 18px calc(env(safe-area-inset-bottom) + 32px);
+}
+
+.brand {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+
+.dot {
+  color: var(--fibre);
+}
+
+.lede {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-dim);
+  max-width: 40ch;
+}
+
+.note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-faint);
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}

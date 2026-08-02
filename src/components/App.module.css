@@ -1,0 +1,9 @@
+.splash {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
