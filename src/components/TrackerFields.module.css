@@ -1,0 +1,158 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tint) 22%, transparent);
+  border: 2px solid var(--tint);
+  display: grid;
+  place-items: center;
+}
+
+.swatchDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tint);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  height: var(--tap);
+  padding: 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.name::placeholder,
+.number::placeholder,
+.unit::placeholder {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 38px;
+}
+
+.number {
+  flex: 1 1 0;
+  min-width: 0;
+  height: var(--tap);
+  padding: 0 10px;
+  text-align: right;
+  font-size: 16px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.unit {
+  flex: 0 0 82px;
+  height: var(--tap);
+  padding: 0 10px;
+  font-size: 15px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.invalid {
+  border-color: var(--danger);
+}
+
+.iconButton {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.iconButton:active:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.iconButton:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.removeButton {
+  color: var(--text-dim);
+  font-size: 19px;
+}
+
+.removeButton:active {
+  color: var(--danger);
+}
+
+.palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0 2px 38px;
+}
+
+.colour {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  display: grid;
+  place-items: center;
+}
+
+.colourDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--swatch);
+}
+
+.colourSelected {
+  border-color: var(--text-dim);
+}
+
+.error {
+  margin: 0;
+  padding-left: 38px;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.hint {
+  margin: 0;
+  padding-left: 38px;
+  font-size: 12px;
+  color: var(--text-faint);
+}

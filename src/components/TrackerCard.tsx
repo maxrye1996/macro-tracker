@@ -1,17 +1,14 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { formatAmount, type MacroMeta } from "@/lib/macros";
+import { colourVar, formatAmount, formatWithUnit, VALUE_MAX, type Tracker } from "@/lib/trackers";
 import type { AddResult } from "@/lib/store";
 import { Thermometer } from "./Thermometer";
-import styles from "./MacroCard.module.css";
+import styles from "./TrackerCard.module.css";
 
 interface Props {
-  readonly meta: MacroMeta;
+  readonly tracker: Tracker;
   readonly value: number;
-  readonly target: number;
-  readonly tint: string;
-  readonly tintSoft: string;
   readonly onAdd: (amount: number) => AddResult;
   readonly onAdded: (message: string) => void;
 }
@@ -27,14 +24,15 @@ function toNumber(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export function MacroCard({ meta, value, target, tint, tintSoft, onAdd, onAdded }: Props) {
+export function TrackerCard({ tracker, value, onAdd, onAdded }: Props) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const errorId = useId();
+  const baseId = useId();
 
   const parsed = toNumber(draft);
   const canSubmit = parsed !== null && parsed > 0;
+  const tint = colourVar(tracker.colour);
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -44,7 +42,7 @@ export function MacroCard({ meta, value, target, tint, tintSoft, onAdd, onAdded 
     }
     const result = onAdd(parsed);
     if (result === "invalid") {
-      setError(`Must be 0–${meta.max.toLocaleString()}`);
+      setError(`Must be 1–${VALUE_MAX.toLocaleString()}`);
       return;
     }
     if (result === "day-full") {
@@ -53,51 +51,48 @@ export function MacroCard({ meta, value, target, tint, tintSoft, onAdd, onAdded 
     }
     setDraft("");
     setError("");
-    onAdded(`Added ${formatAmount(parsed, meta.id)} ${meta.unit} ${meta.label.toLowerCase()}`);
+    onAdded(`Added ${formatWithUnit(parsed, tracker.unit)} ${tracker.name}`);
     // Keep focus so the keypad stays up for the next entry.
     inputRef.current?.focus();
   };
 
-  const remaining = Math.round((target - value) * 10) / 10;
+  const remaining = Math.round((tracker.target - value) * 10) / 10;
 
   return (
     <section
       className={styles.card}
-      style={{ ["--tint" as string]: tint, ["--tint-soft" as string]: tintSoft }}
-      aria-labelledby={`${errorId}-label`}
+      style={{ ["--tint" as string]: tint }}
+      aria-labelledby={`${baseId}-label`}
     >
-      <h2 className={styles.label} id={`${errorId}-label`}>
-        {meta.label}
+      <h2 className={styles.label} id={`${baseId}-label`} title={tracker.name}>
+        {tracker.name}
       </h2>
 
       <Thermometer
         value={value}
-        target={target}
+        target={tracker.target}
         tint={tint}
-        label={`${meta.label}: ${formatAmount(value, meta.id)} of ${formatAmount(
-          target,
-          meta.id,
-        )} ${meta.unit}`}
+        label={`${tracker.name}: ${formatAmount(value)} of ${formatWithUnit(
+          tracker.target,
+          tracker.unit,
+        )}`}
       />
 
       <p className={styles.readout}>
-        <span className={styles.value}>{formatAmount(value, meta.id)}</span>
-        <span className={styles.target}>
-          of {formatAmount(target, meta.id)} {meta.unit}
-        </span>
+        <span className={styles.value}>{formatAmount(value)}</span>
+        <span className={styles.target}>of {formatWithUnit(tracker.target, tracker.unit)}</span>
         <span className={`${styles.remaining}${remaining < 0 ? ` ${styles.over}` : ""}`}>
-          {remaining >= 0
-            ? `${formatAmount(remaining, meta.id)} left`
-            : `${formatAmount(-remaining, meta.id)} over`}
+          {remaining >= 0 ? `${formatAmount(remaining)} left` : `${formatAmount(-remaining)} over`}
         </span>
       </p>
 
       <form className={styles.form} onSubmit={submit} noValidate>
-        <label className="visually-hidden" htmlFor={`${errorId}-input`}>
-          Add {meta.label.toLowerCase()} ({meta.unit})
+        <label className="visually-hidden" htmlFor={`${baseId}-input`}>
+          Add {tracker.name}
+          {tracker.unit ? ` (${tracker.unit})` : ""}
         </label>
         <input
-          id={`${errorId}-input`}
+          id={`${baseId}-input`}
           ref={inputRef}
           className={`${styles.input}${error ? ` ${styles.invalid}` : ""}`}
           type="text"
@@ -106,10 +101,10 @@ export function MacroCard({ meta, value, target, tint, tintSoft, onAdd, onAdded 
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          maxLength={7}
+          maxLength={9}
           placeholder="0"
           value={draft}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={error ? `${baseId}-error` : undefined}
           aria-invalid={error ? true : undefined}
           onChange={(e) => {
             setDraft(e.target.value);
@@ -120,13 +115,13 @@ export function MacroCard({ meta, value, target, tint, tintSoft, onAdd, onAdded 
           type="submit"
           className={styles.add}
           disabled={!canSubmit}
-          aria-label={`Add ${meta.label.toLowerCase()}`}
+          aria-label={`Add ${tracker.name}`}
         >
           +
         </button>
       </form>
 
-      <p className={styles.error} id={errorId}>
+      <p className={styles.error} id={`${baseId}-error`}>
         {error}
       </p>
     </section>

@@ -2,11 +2,10 @@
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 22px;
-  max-width: 460px;
+  gap: 20px;
+  max-width: 520px;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 32px) 18px calc(env(safe-area-inset-bottom) + 32px);
+  padding: calc(env(safe-area-inset-top) + 28px) 16px calc(env(safe-area-inset-bottom) + 28px);
 }
 
 .brand {
@@ -17,14 +16,116 @@
 }
 
 .dot {
-  color: var(--fibre);
+  color: var(--c-green);
 }
 
 .lede {
-  margin: 0;
+  margin: 6px 0 0;
   font-size: 15px;
   color: var(--text-dim);
-  max-width: 40ch;
+  max-width: 42ch;
+}
+
+.sectionTitle {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-faint);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 550;
+  transition: transform 120ms ease;
+}
+
+.chip:active {
+  transform: scale(0.96);
+}
+
+.chipDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tint);
+}
+
+.chipUnit {
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.drafts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.addOwn {
+  min-height: var(--tap);
+  border-radius: var(--radius);
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.addOwn:active {
+  background: var(--surface);
+}
+
+.empty {
+  margin: 0;
+  padding: 18px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text-faint);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: auto;
+}
+
+.submit {
+  height: 52px;
+  border-radius: var(--radius);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 16px;
+  font-weight: 650;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.submit:active {
+  transform: scale(0.99);
+}
+
+.submit:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .note {

@@ -16,7 +16,16 @@ exports.subscribe = subscribe;
 exports.getSnapshot = getSnapshot;
 exports.getServerSnapshot = getServerSnapshot;
 exports.hydrate = hydrate;
-exports.setTargets = setTargets;
+exports.activeTrackers = activeTrackers;
+exports.archivedTrackers = archivedTrackers;
+exports.addTracker = addTracker;
+exports.setTrackers = setTrackers;
+exports.updateTracker = updateTracker;
+exports.hasEntries = hasEntries;
+exports.countEntries = countEntries;
+exports.removeTracker = removeTracker;
+exports.restoreTracker = restoreTracker;
+exports.moveTracker = moveTracker;
 exports.addEntry = addEntry;
 exports.removeEntry = removeEntry;
 exports.goToDate = goToDate;
@@ -28,9 +37,10 @@ exports.importFromCsv = importFromCsv;
 exports.deleteEverything = deleteEverything;
 const csv_1 = require("./csv");
 const date_1 = require("./date");
-const macros_1 = require("./macros");
+const migrate_1 = require("./migrate");
 const schema_1 = require("./schema");
 const storage_1 = require("./storage");
+const trackers_1 = require("./trackers");
 const INITIAL = Object.freeze({
     hydrated: false,
     storageOk: true,
@@ -86,8 +96,16 @@ function hydrate() {
         return;
     hydrating = true;
     const storageOk = (0, storage_1.storageAvailable)();
-    const settings = storageOk ? (0, schema_1.parseSettings)((0, storage_1.readJson)(storage_1.KEYS.settings)) : null;
-    const loggedDays = (storageOk ? (0, schema_1.parseIndex)((0, storage_1.readJson)(storage_1.KEYS.index)) : null) ?? recoverIndex();
+    let settings = storageOk ? (0, schema_1.parseSettings)((0, storage_1.readJson)(storage_1.KEYS.settings)) : null;
+    let loggedDays = (storageOk ? (0, schema_1.parseIndex)((0, storage_1.readJson)(storage_1.KEYS.index)) : null) ?? recoverIndex();
+    // Nothing under the current schema — see whether an older install is there.
+    if (storageOk && !settings) {
+        const migrated = (0, migrate_1.migrateLegacy)();
+        if (migrated) {
+            settings = migrated.settings;
+            loggedDays = migrated.days;
+        }
+    }
     const today = (0, date_1.todayKey)();
     state = {
         hydrated: true,
@@ -128,20 +146,131 @@ function withDayInIndex(date) {
     (0, storage_1.writeJson)(storage_1.KEYS.index, (0, schema_1.serialiseIndex)(next));
     return next;
 }
-// ---------------------------------------------------------------- actions ---
-function setTargets(targets) {
-    const settings = { targets, createdAt: state.settings?.createdAt ?? Date.now() };
+function persistSettings(trackers) {
+    const settings = {
+        trackers,
+        createdAt: state.settings?.createdAt ?? Date.now(),
+    };
     const ok = (0, storage_1.writeJson)(storage_1.KEYS.settings, (0, schema_1.serialiseSettings)(settings));
     setState({ settings, writeFailed: state.writeFailed || !ok });
 }
-function addEntry(macro, rawAmount) {
-    const amount = (0, macros_1.normaliseAmount)(rawAmount, macro);
+// --------------------------------------------------------------- trackers ---
+function activeTrackers(snapshot = state) {
+    return snapshot.settings?.trackers.filter((t) => !t.archived) ?? [];
+}
+function archivedTrackers(snapshot = state) {
+    return snapshot.settings?.trackers.filter((t) => t.archived) ?? [];
+}
+function addTracker(draft) {
+    const existing = state.settings?.trackers ?? [];
+    if (existing.length >= trackers_1.MAX_TRACKERS)
+        return "full";
+    const name = (0, trackers_1.sanitiseName)(draft.name);
+    const target = (0, trackers_1.normaliseAmount)(draft.target);
+    if (name === "" || target === null)
+        return "invalid";
+    const tracker = {
+        id: (0, schema_1.createId)(),
+        name,
+        unit: (0, trackers_1.sanitiseUnit)(draft.unit),
+        target,
+        colour: draft.colour ?? (0, trackers_1.nextColour)(existing),
+        archived: false,
+    };
+    persistSettings([...existing, tracker]);
+    return "added";
+}
+/** Replaces the whole list; used by first-run setup where order is authored. */
+function setTrackers(trackers) {
+    persistSettings(trackers.slice(0, trackers_1.MAX_TRACKERS));
+}
+function updateTracker(id, patch) {
+    const existing = state.settings?.trackers ?? [];
+    const current = existing.find((t) => t.id === id);
+    if (!current)
+        return "invalid";
+    const name = patch.name === undefined ? current.name : (0, trackers_1.sanitiseName)(patch.name);
+    const target = patch.target === undefined ? current.target : (0, trackers_1.normaliseAmount)(patch.target);
+    if (name === "" || target === null)
+        return "invalid";
+    const updated = {
+        ...current,
+        name,
+        target,
+        unit: patch.unit === undefined ? current.unit : (0, trackers_1.sanitiseUnit)(patch.unit),
+        colour: patch.colour ?? current.colour,
+    };
+    persistSettings(existing.map((t) => (t.id === id ? updated : t)));
+    return "added";
+}
+/** True as soon as one entry exists for the tracker; stops looking after that. */
+function hasEntries(trackerId) {
+    for (const date of state.loggedDays) {
+        if (loadDay(date).entries.some((e) => e.trackerId === trackerId))
+            return true;
+    }
+    return false;
+}
+function countEntries(trackerId) {
+    let count = 0;
+    for (const date of state.loggedDays) {
+        for (const entry of loadDay(date).entries)
+            if (entry.trackerId === trackerId)
+                count += 1;
+    }
+    return count;
+}
+/**
+ * Taking a tracker off the daily view never destroys anything a user logged:
+ * one with history is archived and keeps every entry, one that was never used
+ * has nothing to preserve and is simply removed.
+ */
+function removeTracker(id) {
+    const existing = state.settings?.trackers ?? [];
+    if (!existing.some((t) => t.id === id))
+        return "unknown";
+    if (hasEntries(id)) {
+        persistSettings(existing.map((t) => (t.id === id ? { ...t, archived: true } : t)));
+        return "archived";
+    }
+    persistSettings(existing.filter((t) => t.id !== id));
+    return "deleted";
+}
+/** False when the active list is already full, so the caller can say why. */
+function restoreTracker(id) {
+    const existing = state.settings?.trackers ?? [];
+    if (!existing.some((t) => t.id === id))
+        return false;
+    if (existing.filter((t) => !t.archived).length >= trackers_1.MAX_TRACKERS)
+        return false;
+    persistSettings(existing.map((t) => (t.id === id ? { ...t, archived: false } : t)));
+    return true;
+}
+/** Moves a tracker within the active list; archived ones keep their place. */
+function moveTracker(id, delta) {
+    const existing = [...(state.settings?.trackers ?? [])];
+    const from = existing.findIndex((t) => t.id === id);
+    const to = from + delta;
+    if (from < 0 || to < 0 || to >= existing.length)
+        return;
+    const moved = existing[from];
+    const target = existing[to];
+    if (!moved || !target)
+        return;
+    existing[from] = target;
+    existing[to] = moved;
+    persistSettings(existing);
+}
+function addEntry(trackerId, rawAmount) {
+    const amount = (0, trackers_1.normaliseAmount)(rawAmount);
     if (amount === null)
+        return "invalid";
+    if (!state.settings?.trackers.some((t) => t.id === trackerId))
         return "invalid";
     const current = state.day;
     if (current.entries.length >= schema_1.MAX_ENTRIES_PER_DAY)
         return "day-full";
-    const entry = { id: (0, schema_1.createId)(), macro, amount, at: Date.now() };
+    const entry = { id: (0, schema_1.createId)(), trackerId, amount, at: Date.now() };
     const day = { date: current.date, entries: [...current.entries, entry] };
     const ok = persistDay(day);
     setState({
@@ -160,6 +289,7 @@ function removeEntry(id) {
     const ok = persistDay(day);
     setState({ day, writeFailed: state.writeFailed || !ok });
 }
+// ------------------------------------------------------------------- days ---
 function goToDate(date) {
     if (date === state.viewDate)
         return;
@@ -188,12 +318,13 @@ function reloadFromStorage() {
     const loggedDays = (0, schema_1.parseIndex)((0, storage_1.readJson)(storage_1.KEYS.index)) ?? recoverIndex();
     setState({ settings, loggedDays, day: loadDay(state.viewDate) });
 }
+// ------------------------------------------------------------ backup / io ---
 function buildExport() {
-    const targets = state.settings?.targets;
-    if (!targets)
+    const trackers = state.settings?.trackers;
+    if (!trackers || trackers.length === 0)
         return "";
     const days = state.loggedDays.map(loadDay).filter((day) => day.entries.length > 0);
-    return (0, csv_1.exportCsv)(targets, days);
+    return (0, csv_1.exportCsv)(trackers, days);
 }
 /**
  * Replaces all local data with the file's contents. Replace rather than merge
@@ -204,7 +335,7 @@ function importFromCsv(text) {
     const outcome = (0, csv_1.parseCsv)(text);
     if (!outcome.ok)
         return { ok: false, error: outcome.error };
-    const { targets, days, imported, skipped } = outcome.value;
+    const { trackers, days, imported, skipped } = outcome.value;
     (0, storage_1.clearAll)();
     dayCache.clear();
     let writeFailed = false;
@@ -218,10 +349,11 @@ function importFromCsv(text) {
     }
     if (!(0, storage_1.writeJson)(storage_1.KEYS.index, (0, schema_1.serialiseIndex)(dayKeys)))
         writeFailed = true;
-    const settings = targets
-        ? { targets, createdAt: state.settings?.createdAt ?? Date.now() }
-        : state.settings;
-    if (settings && !(0, storage_1.writeJson)(storage_1.KEYS.settings, (0, schema_1.serialiseSettings)(settings)))
+    const settings = {
+        trackers: trackers.length > 0 ? trackers : (state.settings?.trackers ?? []),
+        createdAt: state.settings?.createdAt ?? Date.now(),
+    };
+    if (!(0, storage_1.writeJson)(storage_1.KEYS.settings, (0, schema_1.serialiseSettings)(settings)))
         writeFailed = true;
     const today = (0, date_1.todayKey)();
     setState({
@@ -237,8 +369,8 @@ function importFromCsv(text) {
         summary: {
             days: dayKeys.length,
             entries: imported,
+            trackers: settings.trackers.length,
             skipped,
-            targetsApplied: targets !== null,
         },
     };
 }

@@ -10,7 +10,8 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MAX_ENTRIES_PER_DAY = exports.SCHEMA_VERSION = void 0;
-exports.parseTargets = parseTargets;
+exports.parseTracker = parseTracker;
+exports.parseTrackers = parseTrackers;
 exports.parseSettings = parseSettings;
 exports.serialiseSettings = serialiseSettings;
 exports.parseDayLog = parseDayLog;
@@ -18,11 +19,12 @@ exports.serialiseDayLog = serialiseDayLog;
 exports.parseIndex = parseIndex;
 exports.serialiseIndex = serialiseIndex;
 exports.createId = createId;
+exports.middayOn = middayOn;
 exports.emptyDay = emptyDay;
 exports.totalsFor = totalsFor;
 const date_1 = require("./date");
-const macros_1 = require("./macros");
-exports.SCHEMA_VERSION = 1;
+const trackers_1 = require("./trackers");
+exports.SCHEMA_VERSION = 2;
 /** Guards against a single pathological day blowing up render and storage. */
 exports.MAX_ENTRIES_PER_DAY = 500;
 /** Narrow unknown JSON to a plain object without inheriting anything from it. */
@@ -30,6 +32,9 @@ function asRecord(value) {
     if (typeof value !== "object" || value === null || Array.isArray(value))
         return null;
     return value;
+}
+function asId(value) {
+    return typeof value === "string" && value.length > 0 && value.length <= 64 ? value : null;
 }
 function asEpoch(value) {
     if (typeof value !== "number" || !Number.isFinite(value))
@@ -40,16 +45,42 @@ function asEpoch(value) {
         return null;
     return Math.floor(value);
 }
-function parseTargets(value) {
+function parseTracker(value) {
     const raw = asRecord(value);
     if (!raw)
         return null;
-    const out = {};
-    for (const id of macros_1.MACRO_IDS) {
-        const n = (0, macros_1.normaliseTarget)(raw[id], id);
-        if (n === null)
-            return null;
-        out[id] = n;
+    const id = asId(raw["id"]);
+    if (id === null)
+        return null;
+    const name = (0, trackers_1.sanitiseName)(raw["name"]);
+    if (name === "")
+        return null;
+    const target = (0, trackers_1.normaliseAmount)(raw["target"]);
+    if (target === null)
+        return null;
+    return {
+        id,
+        name,
+        unit: (0, trackers_1.sanitiseUnit)(raw["unit"]),
+        target,
+        colour: (0, trackers_1.isColourId)(raw["colour"]) ? raw["colour"] : trackers_1.DEFAULT_COLOUR,
+        archived: raw["archived"] === true,
+    };
+}
+function parseTrackers(value) {
+    if (!Array.isArray(value))
+        return null;
+    const out = [];
+    const seen = new Set();
+    for (const item of value) {
+        if (out.length >= trackers_1.MAX_TRACKERS)
+            break;
+        const tracker = parseTracker(item);
+        // A single unreadable tracker is dropped rather than losing the whole set.
+        if (!tracker || seen.has(tracker.id))
+            continue;
+        seen.add(tracker.id);
+        out.push(tracker);
     }
     return out;
 }
@@ -57,28 +88,37 @@ function parseSettings(value) {
     const raw = asRecord(value);
     if (!raw || raw["v"] !== exports.SCHEMA_VERSION)
         return null;
-    const targets = parseTargets(raw["targets"]);
-    if (!targets)
+    const trackers = parseTrackers(raw["trackers"]);
+    if (!trackers)
         return null;
-    return { targets, createdAt: asEpoch(raw["createdAt"]) ?? Date.now() };
+    return { trackers, createdAt: asEpoch(raw["createdAt"]) ?? Date.now() };
 }
 function serialiseSettings(settings) {
-    return { v: exports.SCHEMA_VERSION, targets: { ...settings.targets }, createdAt: settings.createdAt };
+    return {
+        v: exports.SCHEMA_VERSION,
+        createdAt: settings.createdAt,
+        trackers: settings.trackers.map((t) => ({
+            id: t.id,
+            name: t.name,
+            unit: t.unit,
+            target: t.target,
+            colour: t.colour,
+            archived: t.archived,
+        })),
+    };
 }
 function parseEntry(value, fallbackAt) {
     const raw = asRecord(value);
     if (!raw)
         return null;
-    const macro = raw["macro"];
-    if (!(0, macros_1.isMacroId)(macro))
+    const trackerId = asId(raw["trackerId"]);
+    if (trackerId === null)
         return null;
-    const amount = (0, macros_1.normaliseAmount)(raw["amount"], macro);
+    const amount = (0, trackers_1.normaliseAmount)(raw["amount"]);
     if (amount === null)
         return null;
-    const id = typeof raw["id"] === "string" && raw["id"].length > 0 && raw["id"].length <= 64
-        ? raw["id"]
-        : createId();
-    return { id, macro, amount, at: asEpoch(raw["at"]) ?? fallbackAt };
+    const id = asId(raw["id"]) ?? createId();
+    return { id, trackerId, amount, at: asEpoch(raw["at"]) ?? fallbackAt };
 }
 function parseDayLog(value, expectedDate) {
     const raw = asRecord(value);
@@ -89,7 +129,7 @@ function parseDayLog(value, expectedDate) {
     const rawEntries = raw["entries"];
     if (!Array.isArray(rawEntries))
         return null;
-    const fallbackAt = new Date(`${expectedDate}T12:00:00`).getTime();
+    const fallbackAt = middayOn(expectedDate);
     const entries = [];
     const seen = new Set();
     for (const item of rawEntries.slice(0, exports.MAX_ENTRIES_PER_DAY)) {
@@ -107,7 +147,12 @@ function serialiseDayLog(day) {
     return {
         v: exports.SCHEMA_VERSION,
         date: day.date,
-        entries: day.entries.map((e) => ({ id: e.id, macro: e.macro, amount: e.amount, at: e.at })),
+        entries: day.entries.map((e) => ({
+            id: e.id,
+            trackerId: e.trackerId,
+            amount: e.amount,
+            at: e.at,
+        })),
     };
 }
 function parseIndex(value) {
@@ -126,7 +171,7 @@ function parseIndex(value) {
 function serialiseIndex(days) {
     return { v: exports.SCHEMA_VERSION, days: [...days] };
 }
-/** Entry ids only need to be locally unique; they are never sent anywhere. */
+/** Ids only need to be locally unique; they are never sent anywhere. */
 function createId() {
     const c = globalThis.crypto;
     if (c && typeof c.randomUUID === "function")
@@ -137,15 +182,24 @@ function createId() {
     }
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
+/** A neutral time-of-day for entries that arrive without a usable timestamp. */
+function middayOn(date) {
+    return new Date(`${date}T12:00:00`).getTime();
+}
 function emptyDay(date) {
     return { date, entries: [] };
 }
+/**
+ * Totals keyed by tracker id. A Map rather than an object because the keys are
+ * arbitrary strings and a Map has no prototype to collide with.
+ */
 function totalsFor(day) {
-    const totals = { calories: 0, protein: 0, fibre: 0 };
-    for (const entry of day.entries)
-        totals[entry.macro] += entry.amount;
+    const totals = new Map();
+    for (const entry of day.entries) {
+        totals.set(entry.trackerId, (totals.get(entry.trackerId) ?? 0) + entry.amount);
+    }
     // Sum in float then round once, so 0.1 + 0.2 never surfaces as 0.30000000000000004.
-    for (const id of macros_1.MACRO_IDS)
-        totals[id] = Math.round(totals[id] * 10) / 10;
+    for (const [id, value] of totals)
+        totals.set(id, Math.round(value * 10) / 10);
     return totals;
 }

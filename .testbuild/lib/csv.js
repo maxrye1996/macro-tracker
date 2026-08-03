@@ -14,17 +14,34 @@ exports.exportCsv = exportCsv;
 exports.parseCsv = parseCsv;
 exports.csvFilename = csvFilename;
 const date_1 = require("./date");
-const macros_1 = require("./macros");
 const schema_1 = require("./schema");
-exports.CSV_HEADER = ["type", "date", "macro", "amount", "logged_at"];
-/** Refuse anything implausible for a personal macro log. */
+const schema_2 = require("./schema");
+const trackers_1 = require("./trackers");
+exports.CSV_HEADER = [
+    "type",
+    "date",
+    "tracker_id",
+    "name",
+    "unit",
+    "amount",
+    "logged_at",
+    "colour",
+    "archived",
+];
+/** The pre-tracker export format, still accepted on import. */
+const LEGACY_HEADER = ["type", "date", "macro", "amount", "logged_at"];
+const LEGACY_UNITS = {
+    calories: { name: "Calories", unit: "kcal", colour: "amber" },
+    protein: { name: "Protein", unit: "g", colour: "blue" },
+    fibre: { name: "Fibre", unit: "g", colour: "green" },
+};
+/** Refuse anything implausible for a personal log. */
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 const MAX_IMPORT_ROWS = 100_000;
 /**
- * Spreadsheets execute a cell that starts with =, +, - or @. None of our fields
- * can currently start with those, but the guard is applied anyway so that a
- * future field (a note, a food name) cannot turn an export into a payload that
- * runs when the user opens their own backup.
+ * Spreadsheets execute a cell that starts with =, +, - or @. Tracker names are
+ * free text typed by the user, so a name like "=cmd|..." would otherwise turn
+ * their own backup into a payload that runs when they open it.
  */
 function escapeField(value) {
     const risky = /^[=+\-@\t\r]/.test(value);
@@ -34,18 +51,40 @@ function escapeField(value) {
 function row(fields) {
     return fields.map(escapeField).join(",");
 }
-function exportCsv(targets, days) {
+function exportCsv(trackers, days) {
     const lines = [row(exports.CSV_HEADER)];
-    for (const macro of Object.keys(targets)) {
-        lines.push(row(["target", "", macro, String(targets[macro]), ""]));
+    for (const t of trackers) {
+        lines.push(row([
+            "tracker",
+            "",
+            t.id,
+            t.name,
+            t.unit,
+            String(t.target),
+            "",
+            t.colour,
+            t.archived ? "true" : "false",
+        ]));
     }
+    const byId = new Map(trackers.map((t) => [t.id, t]));
     // Oldest first, and stable within a day, so re-exporting produces an
     // identical file when nothing changed.
     const ordered = [...days].sort((a, b) => a.date.localeCompare(b.date));
     for (const day of ordered) {
         const entries = [...day.entries].sort((a, b) => a.at - b.at);
         for (const entry of entries) {
-            lines.push(row(["entry", day.date, entry.macro, String(entry.amount), new Date(entry.at).toISOString()]));
+            const tracker = byId.get(entry.trackerId);
+            lines.push(row([
+                "entry",
+                day.date,
+                entry.trackerId,
+                tracker?.name ?? "",
+                tracker?.unit ?? "",
+                String(entry.amount),
+                new Date(entry.at).toISOString(),
+                "",
+                "",
+            ]));
         }
     }
     return `${lines.join("\r\n")}\r\n`;
@@ -102,6 +141,27 @@ function parseRows(text, maxRows) {
         pushRecord();
     return rows;
 }
+/** Undo the anti-injection prefix added on export. */
+function clean(cell) {
+    return (cell ?? "").trim().replace(/^'(?=[=+\-@])/, "");
+}
+function collectDays(entries) {
+    const byDate = new Map();
+    let skipped = 0;
+    for (const { date, entry } of entries) {
+        const bucket = byDate.get(date) ?? [];
+        if (bucket.length >= schema_1.MAX_ENTRIES_PER_DAY) {
+            skipped += 1;
+            continue;
+        }
+        bucket.push(entry);
+        byDate.set(date, bucket);
+    }
+    const days = [...byDate.entries()]
+        .map(([date, list]) => ({ date, entries: list.sort((a, b) => a.at - b.at) }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+    return { days, skipped };
+}
 function parseCsv(text) {
     if (text.length > MAX_IMPORT_BYTES) {
         return { ok: false, error: "That file is too large to be a MacroTracro backup." };
@@ -110,66 +170,146 @@ function parseCsv(text) {
     const rows = parseRows(cleaned, MAX_IMPORT_ROWS + 1);
     if (rows.length === 0)
         return { ok: false, error: "That file is empty." };
-    const header = rows[0]?.map((h) => h.trim().toLowerCase()) ?? [];
-    const expected = exports.CSV_HEADER.join(",");
-    if (header.join(",") !== expected) {
+    const header = (rows[0] ?? []).map((h) => h.trim().toLowerCase()).join(",");
+    if (header === LEGACY_HEADER.join(","))
+        return parseLegacy(rows);
+    if (header !== exports.CSV_HEADER.join(",")) {
         return { ok: false, error: "Unrecognised file. Expected a CSV exported from MacroTracro." };
     }
-    const partialTargets = {};
-    const byDate = new Map();
-    let imported = 0;
+    const trackers = [];
+    const byId = new Map();
+    const byName = new Map();
+    let skipped = 0;
+    // First pass: tracker definitions, so entry rows can reference them
+    // regardless of where they appear in a hand-edited file.
+    for (let i = 1; i < rows.length; i += 1) {
+        const cells = rows[i];
+        if (!cells || clean(cells[0]) !== "tracker")
+            continue;
+        if (trackers.length >= trackers_1.MAX_TRACKERS) {
+            skipped += 1;
+            continue;
+        }
+        const id = clean(cells[2]) || (0, schema_1.createId)();
+        const name = (0, trackers_1.sanitiseName)(clean(cells[3]));
+        const target = (0, trackers_1.normaliseAmount)(clean(cells[5]));
+        if (name === "" || target === null || byId.has(id)) {
+            skipped += 1;
+            continue;
+        }
+        const colourCell = clean(cells[7]);
+        const tracker = {
+            id,
+            name,
+            unit: (0, trackers_1.sanitiseUnit)(clean(cells[4])),
+            target,
+            colour: (0, trackers_1.isColourId)(colourCell) ? colourCell : trackers_1.DEFAULT_COLOUR,
+            archived: clean(cells[8]).toLowerCase() === "true",
+        };
+        trackers.push(tracker);
+        byId.set(id, tracker);
+        if (!byName.has(name.toLowerCase()))
+            byName.set(name.toLowerCase(), tracker);
+    }
+    // Second pass: entries.
+    const staged = [];
+    for (let i = 1; i < rows.length; i += 1) {
+        const cells = rows[i];
+        if (!cells)
+            continue;
+        const type = clean(cells[0]);
+        if (type === "tracker")
+            continue;
+        if (type !== "entry") {
+            skipped += 1;
+            continue;
+        }
+        const date = clean(cells[1]);
+        const amount = (0, trackers_1.normaliseAmount)(clean(cells[5]));
+        if (!(0, date_1.isDayKey)(date) || amount === null) {
+            skipped += 1;
+            continue;
+        }
+        // Match on id, then fall back to name so a hand-edited file still works.
+        const tracker = byId.get(clean(cells[2])) ?? byName.get((0, trackers_1.sanitiseName)(clean(cells[3])).toLowerCase());
+        if (!tracker) {
+            skipped += 1;
+            continue;
+        }
+        const parsedAt = Date.parse(clean(cells[6]));
+        staged.push({
+            date,
+            entry: {
+                id: (0, schema_1.createId)(),
+                trackerId: tracker.id,
+                amount,
+                at: Number.isFinite(parsedAt) ? parsedAt : (0, schema_2.middayOn)(date),
+            },
+        });
+    }
+    const { days, skipped: overflow } = collectDays(staged);
+    const imported = staged.length - overflow;
+    if (trackers.length === 0 && imported === 0) {
+        return { ok: false, error: "No usable trackers or entries found in that file." };
+    }
+    return { ok: true, value: { trackers, days, imported, skipped: skipped + overflow } };
+}
+/** Reads the original `type,date,macro,amount,logged_at` export. */
+function parseLegacy(rows) {
+    const trackers = [];
+    const byId = new Map();
     let skipped = 0;
     for (let i = 1; i < rows.length; i += 1) {
         const cells = rows[i];
-        if (!cells || cells.length === 0)
+        if (!cells || clean(cells[0]) !== "target")
             continue;
-        // Undo the anti-injection prefix added on export.
-        const [type = "", date = "", macroRaw = "", amountRaw = "", atRaw = ""] = cells.map((c) => c.trim().replace(/^'(?=[=+\-@])/, ""));
-        const macro = macroRaw.toLowerCase();
-        if (!(0, macros_1.isMacroId)(macro)) {
+        const macro = clean(cells[2]).toLowerCase();
+        const meta = LEGACY_UNITS[macro];
+        const target = (0, trackers_1.normaliseAmount)(clean(cells[3]));
+        if (!meta || target === null || byId.has(macro)) {
             skipped += 1;
             continue;
         }
-        if (type === "target") {
-            const value = (0, macros_1.normaliseTarget)(amountRaw, macro);
-            if (value === null)
-                skipped += 1;
-            else
-                partialTargets[macro] = value;
-            continue;
-        }
-        if (type !== "entry" || !(0, date_1.isDayKey)(date)) {
-            skipped += 1;
-            continue;
-        }
-        const amount = (0, macros_1.normaliseAmount)(amountRaw, macro);
-        if (amount === null) {
-            skipped += 1;
-            continue;
-        }
-        const bucket = byDate.get(date) ?? [];
-        if (bucket.length >= schema_1.MAX_ENTRIES_PER_DAY) {
-            skipped += 1;
-            continue;
-        }
-        const parsedAt = Date.parse(atRaw);
-        const at = Number.isFinite(parsedAt) ? parsedAt : new Date(`${date}T12:00:00`).getTime();
-        bucket.push({ id: (0, schema_1.createId)(), macro, amount, at });
-        byDate.set(date, bucket);
-        imported += 1;
+        const tracker = { id: macro, ...meta, target, archived: false };
+        trackers.push(tracker);
+        byId.set(macro, tracker);
     }
-    const targets = partialTargets.calories !== undefined &&
-        partialTargets.protein !== undefined &&
-        partialTargets.fibre !== undefined
-        ? partialTargets
-        : null;
-    if (targets === null && imported === 0) {
-        return { ok: false, error: "No usable targets or entries found in that file." };
+    const staged = [];
+    for (let i = 1; i < rows.length; i += 1) {
+        const cells = rows[i];
+        if (!cells)
+            continue;
+        const type = clean(cells[0]);
+        if (type === "target")
+            continue;
+        if (type !== "entry") {
+            skipped += 1;
+            continue;
+        }
+        const date = clean(cells[1]);
+        const macro = clean(cells[2]).toLowerCase();
+        const amount = (0, trackers_1.normaliseAmount)(clean(cells[3]));
+        if (!(0, date_1.isDayKey)(date) || amount === null || !byId.has(macro)) {
+            skipped += 1;
+            continue;
+        }
+        const parsedAt = Date.parse(clean(cells[4]));
+        staged.push({
+            date,
+            entry: {
+                id: (0, schema_1.createId)(),
+                trackerId: macro,
+                amount,
+                at: Number.isFinite(parsedAt) ? parsedAt : (0, schema_2.middayOn)(date),
+            },
+        });
     }
-    const days = [...byDate.entries()]
-        .map(([date, entries]) => ({ date, entries: entries.sort((a, b) => a.at - b.at) }))
-        .sort((a, b) => a.date.localeCompare(b.date));
-    return { ok: true, value: { targets, days, imported, skipped } };
+    const { days, skipped: overflow } = collectDays(staged);
+    const imported = staged.length - overflow;
+    if (trackers.length === 0 && imported === 0) {
+        return { ok: false, error: "No usable trackers or entries found in that file." };
+    }
+    return { ok: true, value: { trackers, days, imported, skipped: skipped + overflow } };
 }
 function csvFilename(now = new Date()) {
     const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;

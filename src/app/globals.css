@@ -12,12 +12,18 @@
   --text-dim: #9aa3b0;
   --text-faint: #6b7482;
 
-  --calories: #ff9f43;
-  --calories-soft: #ff9f4326;
-  --protein: #6c8cff;
-  --protein-soft: #6c8cff26;
-  --fibre: #3ecf8e;
-  --fibre-soft: #3ecf8e26;
+  /* Tracker palette. Referenced by id from lib/trackers.ts, so a stored
+     colour is always a name and never a raw value a user could inject. */
+  --c-amber: #ff9f43;
+  --c-blue: #6c8cff;
+  --c-green: #3ecf8e;
+  --c-violet: #b98cff;
+  --c-rose: #ff7a9c;
+  --c-cyan: #4fd1e8;
+  --c-lime: #b8e04f;
+  --c-slate: #9aa8bd;
+
+  --accent: var(--c-blue);
 
   --danger: #ff6b6b;
   --warn: #ffcf5c;
@@ -39,12 +45,14 @@
     --text-dim: #5b6472;
     --text-faint: #8a93a1;
 
-    --calories: #e07a12;
-    --calories-soft: #e07a121f;
-    --protein: #4361e8;
-    --protein-soft: #4361e81f;
-    --fibre: #17a06a;
-    --fibre-soft: #17a06a1f;
+    --c-amber: #d97706;
+    --c-blue: #4361e8;
+    --c-green: #17a06a;
+    --c-violet: #7c3aed;
+    --c-rose: #db2777;
+    --c-cyan: #0e8ba8;
+    --c-lime: #65a30d;
+    --c-slate: #64748b;
 
     --danger: #d63a3a;
     --warn: #a97a06;
@@ -98,7 +106,7 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--protein);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 6px;
 }

@@ -8,12 +8,12 @@ import {
   hydrate,
   refreshToday,
   reloadFromStorage,
-  setTargets,
+  setTrackers,
   subscribe,
 } from "@/lib/store";
 import { Setup } from "./Setup";
 import { SettingsPanel } from "./SettingsPanel";
-import { Tracker } from "./Tracker";
+import { DayScreen } from "./DayScreen";
 import styles from "./App.module.css";
 
 export function App() {
@@ -49,7 +49,7 @@ export function App() {
 
     // Another tab of the web build writing to storage.
     const onStorage = (event: StorageEvent) => {
-      if (event.key !== null && !event.key.startsWith("mt.v1.")) return;
+      if (event.key !== null && !event.key.startsWith("mt.")) return;
       reloadFromStorage();
     };
 
@@ -73,20 +73,20 @@ export function App() {
   }
 
   if (!state.settings) {
-    return <Setup onDone={setTargets} />;
+    return <Setup onDone={setTrackers} />;
   }
 
   return (
     <>
-      <Tracker
+      <DayScreen
         state={state}
         settings={state.settings}
         onOpenSettings={() => setSettingsOpen(true)}
       />
       {settingsOpen && (
         <SettingsPanel
+          state={state}
           settings={state.settings}
-          dayCount={state.loggedDays.length}
           onClose={() => setSettingsOpen(false)}
         />
       )}

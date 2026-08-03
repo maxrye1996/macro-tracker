@@ -1,10 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { csvFilename } from "@/lib/csv";
-import type { Settings, Targets } from "@/lib/schema";
-import { buildExport, deleteEverything, importFromCsv, setTargets } from "@/lib/store";
-import { TargetsForm } from "./TargetsForm";
+import type { Settings } from "@/lib/schema";
+import {
+  addTracker,
+  buildExport,
+  countEntries,
+  deleteEverything,
+  importFromCsv,
+  moveTracker,
+  removeTracker,
+  restoreTracker,
+  updateTracker,
+  type AppState,
+} from "@/lib/store";
+import {
+  colourVar,
+  MAX_TRACKERS,
+  nextColour,
+  sanitiseName,
+  VALUE_MAX,
+  type Tracker,
+} from "@/lib/trackers";
+import { TrackerFields, type TrackerDraftValues } from "./TrackerFields";
 import styles from "./SettingsPanel.module.css";
 
 /** Refuse to read anything larger than a plausible backup into memory. */
@@ -12,18 +31,32 @@ const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
 type Status = { readonly tone: "info" | "error"; readonly text: string } | null;
 
+function toDraft(tracker: Tracker): TrackerDraftValues {
+  return {
+    name: tracker.name,
+    unit: tracker.unit,
+    target: String(tracker.target),
+    colour: tracker.colour,
+  };
+}
+
 interface Props {
+  readonly state: AppState;
   readonly settings: Settings;
-  readonly dayCount: number;
   readonly onClose: () => void;
 }
 
-export function SettingsPanel({ settings, dayCount, onClose }: Props) {
+export function SettingsPanel({ state, settings, onClose }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<Status>(null);
   const [csvText, setCsvText] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  /** In-progress edits, keyed by tracker id. Cleared once committed. */
+  const [edits, setEdits] = useState<Record<string, TrackerDraftValues>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [newDraft, setNewDraft] = useState<TrackerDraftValues | null>(null);
 
   // `showModal` gives a real focus trap, inert background and Escape-to-close
   // without shipping a modal library.
@@ -33,9 +66,90 @@ export function SettingsPanel({ settings, dayCount, onClose }: Props) {
     dialog.showModal();
   }, []);
 
-  const saveTargets = (targets: Targets) => {
-    setTargets(targets);
-    setStatus({ tone: "info", text: "Targets updated." });
+  const active = settings.trackers.filter((t) => !t.archived);
+  const archived = settings.trackers.filter((t) => t.archived);
+  const dayCount = state.loggedDays.length;
+
+  // Counting scans every logged day, so only do it when the section is shown.
+  // `countEntries` reads the store directly rather than taking arguments, so
+  // `loggedDays` is listed to re-run the count when the history changes even
+  // though the lint rule cannot see the dependency.
+  const archivedCounts = useMemo(
+    () =>
+      new Map(
+        settings.trackers.filter((t) => t.archived).map((t) => [t.id, countEntries(t.id)] as const),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [settings.trackers, state.loggedDays],
+  );
+
+  const commitTracker = (tracker: Tracker, override?: Partial<TrackerDraftValues>) => {
+    const draft = { ...(edits[tracker.id] ?? toDraft(tracker)), ...override };
+    const result = updateTracker(tracker.id, {
+      name: draft.name,
+      unit: draft.unit,
+      target: draft.target,
+      colour: draft.colour,
+    });
+
+    if (result !== "added") {
+      setErrors((prev) => ({
+        ...prev,
+        [tracker.id]:
+          sanitiseName(draft.name) === ""
+            ? "Give this tracker a name."
+            : `Set a target between 1 and ${VALUE_MAX.toLocaleString()}.`,
+      }));
+      return;
+    }
+    // Drop the local copy so the row re-derives from what was actually stored.
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[tracker.id];
+      return next;
+    });
+    setEdits((prev) => {
+      const next = { ...prev };
+      delete next[tracker.id];
+      return next;
+    });
+  };
+
+  const remove = (tracker: Tracker) => {
+    const outcome = removeTracker(tracker.id);
+    setStatus({
+      tone: "info",
+      text:
+        outcome === "archived"
+          ? `${tracker.name} archived. Its history is kept and still exports.`
+          : `${tracker.name} removed. It had nothing logged against it.`,
+    });
+  };
+
+  const confirmAdd = () => {
+    if (!newDraft) return;
+    const result = addTracker({
+      name: newDraft.name,
+      unit: newDraft.unit,
+      target: newDraft.target,
+      colour: newDraft.colour,
+    });
+    if (result === "full") {
+      setStatus({ tone: "error", text: `You can have at most ${MAX_TRACKERS} trackers.` });
+      return;
+    }
+    if (result === "invalid") {
+      setStatus({
+        tone: "error",
+        text:
+          sanitiseName(newDraft.name) === ""
+            ? "Give the new tracker a name."
+            : `Set a target between 1 and ${VALUE_MAX.toLocaleString()}.`,
+      });
+      return;
+    }
+    setNewDraft(null);
+    setStatus({ tone: "info", text: `${sanitiseName(newDraft.name)} added.` });
   };
 
   const exportCsv = () => {
@@ -54,8 +168,8 @@ export function SettingsPanel({ settings, dayCount, onClose }: Props) {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      // Revoke on the next tick; revoking synchronously cancels the download
-      // in some webviews.
+      // Revoke on a delay; revoking synchronously cancels the download in
+      // some webviews.
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
       setStatus({ tone: "info", text: `Exported ${dayCount} day${dayCount === 1 ? "" : "s"}.` });
     } catch {
@@ -93,7 +207,7 @@ export function SettingsPanel({ settings, dayCount, onClose }: Props) {
     }
 
     const proceed = window.confirm(
-      "Importing replaces all data currently on this device. Continue?",
+      "Importing replaces all trackers and entries currently on this device. Continue?",
     );
     if (!proceed) return;
 
@@ -110,12 +224,13 @@ export function SettingsPanel({ settings, dayCount, onClose }: Props) {
       setStatus({ tone: "error", text: report.error });
       return;
     }
-    const { days, entries, skipped } = report.summary;
+    const { days, entries, trackers, skipped } = report.summary;
+    setEdits({});
     setStatus({
       tone: "info",
-      text: `Imported ${entries} entries across ${days} day${days === 1 ? "" : "s"}${
-        skipped > 0 ? `, skipped ${skipped} unreadable row${skipped === 1 ? "" : "s"}` : ""
-      }.`,
+      text: `Imported ${trackers} tracker${trackers === 1 ? "" : "s"} and ${entries} entries across ${days} day${
+        days === 1 ? "" : "s"
+      }${skipped > 0 ? `, skipped ${skipped} unreadable row${skipped === 1 ? "" : "s"}` : ""}.`,
     });
   };
 
@@ -133,7 +248,12 @@ export function SettingsPanel({ settings, dayCount, onClose }: Props) {
       <div className={styles.inner}>
         <div className={styles.head}>
           <h2 className={styles.title}>Settings</h2>
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Close settings">
+          <button
+            type="button"
+            className={styles.close}
+            onClick={onClose}
+            aria-label="Close settings"
+          >
             ×
           </button>
         </div>
@@ -148,9 +268,113 @@ export function SettingsPanel({ settings, dayCount, onClose }: Props) {
         )}
 
         <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>Daily targets</h3>
-          <TargetsForm initial={settings.targets} submitLabel="Save targets" onSubmit={saveTargets} />
+          <h3 className={styles.sectionTitle}>Trackers</h3>
+          <p className={styles.blurb}>
+            Edits save as you leave each field. Order here is the order they appear on the daily
+            view; beyond three, the row scrolls sideways.
+          </p>
+
+          <div className={styles.trackerList}>
+            {active.map((tracker, index) => (
+              <TrackerFields
+                key={tracker.id}
+                value={edits[tracker.id] ?? toDraft(tracker)}
+                error={errors[tracker.id]}
+                onChange={(patch) =>
+                  setEdits((prev) => ({
+                    ...prev,
+                    [tracker.id]: { ...(prev[tracker.id] ?? toDraft(tracker)), ...patch },
+                  }))
+                }
+                onCommit={(override) => commitTracker(tracker, override)}
+                onRemove={() => remove(tracker)}
+                removeLabel="Remove from daily view"
+                onMove={(delta) => moveTracker(tracker.id, delta)}
+                canMoveUp={index > 0}
+                canMoveDown={index < active.length - 1}
+              />
+            ))}
+
+            {newDraft ? (
+              <>
+                <TrackerFields
+                  value={newDraft}
+                  autoFocus
+                  onChange={(patch) => setNewDraft((prev) => (prev ? { ...prev, ...patch } : prev))}
+                  onRemove={() => setNewDraft(null)}
+                  removeLabel="Discard new tracker"
+                />
+                <div className={styles.draftActions}>
+                  <button type="button" className={styles.cancelAdd} onClick={() => setNewDraft(null)}>
+                    Cancel
+                  </button>
+                  <button type="button" className={styles.confirmAdd} onClick={confirmAdd}>
+                    Add tracker
+                  </button>
+                </div>
+              </>
+            ) : (
+              settings.trackers.length < MAX_TRACKERS && (
+                <button
+                  type="button"
+                  className={styles.addTracker}
+                  onClick={() =>
+                    setNewDraft({
+                      name: "",
+                      unit: "",
+                      target: "",
+                      colour: nextColour(settings.trackers),
+                    })
+                  }
+                >
+                  + Add tracker
+                </button>
+              )
+            )}
+          </div>
         </section>
+
+        {archived.length > 0 && (
+          <section className={styles.section}>
+            <h3 className={styles.sectionTitle}>Archived</h3>
+            <p className={styles.blurb}>
+              Hidden from the daily view. Every entry is still stored and still included in
+              exports.
+            </p>
+            {archived.map((tracker) => {
+              const count = archivedCounts.get(tracker.id) ?? 0;
+              return (
+                <div
+                  key={tracker.id}
+                  className={styles.archivedRow}
+                  style={{ ["--tint" as string]: colourVar(tracker.colour) }}
+                >
+                  <span className={styles.archivedSwatch} aria-hidden="true" />
+                  <span className={styles.archivedText}>
+                    <span className={styles.archivedName}>{tracker.name}</span>
+                    <span className={styles.archivedMeta}>
+                      {count} entr{count === 1 ? "y" : "ies"} kept
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.restore}
+                    onClick={() => {
+                      if (!restoreTracker(tracker.id)) {
+                        setStatus({
+                          tone: "error",
+                          text: `Archive or remove another tracker first — ${MAX_TRACKERS} is the limit.`,
+                        });
+                      }
+                    }}
+                  >
+                    Restore
+                  </button>
+                </div>
+              );
+            })}
+          </section>
+        )}
 
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Backup</h3>
@@ -227,7 +451,7 @@ export function SettingsPanel({ settings, dayCount, onClose }: Props) {
               <span>
                 {confirmingDelete ? "Tap again to erase everything" : "Delete all data"}
                 <span className={styles.actionHint}>
-                  {confirmingDelete ? "This cannot be undone" : "Targets and every logged day"}
+                  {confirmingDelete ? "This cannot be undone" : "Every tracker and every logged day"}
                 </span>
               </span>
             </button>

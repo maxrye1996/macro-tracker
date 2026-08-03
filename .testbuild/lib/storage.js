@@ -2,30 +2,46 @@
 /**
  * The only module in the app that touches a persistence API.
  *
- * Everything is namespaced under `mt.v1.` and split one key per day, so adding
+ * Everything is namespaced under `mt.v2.` and split one key per day, so adding
  * an entry rewrites just that day rather than the whole history — the cost of a
  * tap stays constant as the log grows to years of data.
  *
  * Swapping in native storage later (Capacitor Preferences, so iOS cannot evict
- * the data) means reimplementing this file's four functions and nothing else.
+ * the data) means reimplementing this file's read/write functions and nothing
+ * else.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.KEYS = void 0;
+exports.LEGACY_KEYS = exports.KEYS = void 0;
 exports.isDayStorageKey = isDayStorageKey;
+exports.isOwnedKey = isOwnedKey;
 exports.storageAvailable = storageAvailable;
 exports.readJson = readJson;
 exports.writeJson = writeJson;
 exports.removeKey = removeKey;
 exports.ownedKeys = ownedKeys;
 exports.clearAll = clearAll;
-const PREFIX = "mt.v1.";
+exports.clearLegacy = clearLegacy;
+const PREFIX = "mt.v2.";
+/** Pre-tracker schema, read once at startup so existing logs are not lost. */
+const LEGACY_PREFIX = "mt.v1.";
+/** Every namespace the app has ever owned, for enumeration and wiping. */
+const ALL_PREFIXES = [PREFIX, LEGACY_PREFIX];
 exports.KEYS = {
     settings: `${PREFIX}settings`,
     index: `${PREFIX}index`,
     day: (date) => `${PREFIX}day.${date}`,
 };
+exports.LEGACY_KEYS = {
+    settings: `${LEGACY_PREFIX}settings`,
+    index: `${LEGACY_PREFIX}index`,
+    day: (date) => `${LEGACY_PREFIX}day.${date}`,
+    prefix: LEGACY_PREFIX,
+};
 function isDayStorageKey(key) {
     return key.startsWith(`${PREFIX}day.`);
+}
+function isOwnedKey(key) {
+    return ALL_PREFIXES.some((p) => key.startsWith(p));
 }
 /**
  * localStorage access throws rather than returning null in several real cases:
@@ -95,7 +111,7 @@ function removeKey(key) {
         /* nothing useful to do */
     }
 }
-/** Every key this app owns. Used by "delete everything" so nothing is missed. */
+/** Every key this app owns, current and legacy. */
 function ownedKeys() {
     const s = store();
     if (!s)
@@ -104,7 +120,7 @@ function ownedKeys() {
     try {
         for (let i = 0; i < s.length; i += 1) {
             const key = s.key(i);
-            if (key !== null && key.startsWith(PREFIX))
+            if (key !== null && isOwnedKey(key))
                 keys.push(key);
         }
     }
@@ -116,4 +132,10 @@ function ownedKeys() {
 function clearAll() {
     for (const key of ownedKeys())
         removeKey(key);
+}
+function clearLegacy() {
+    for (const key of ownedKeys()) {
+        if (key.startsWith(LEGACY_PREFIX))
+            removeKey(key);
+    }
 }

@@ -9,18 +9,24 @@
  */
 
 import { isDayKey, type DayKey } from "./date";
-import { MACRO_IDS, isMacroId, normaliseAmount, normaliseTarget, type MacroId } from "./macros";
+import {
+  DEFAULT_COLOUR,
+  isColourId,
+  MAX_TRACKERS,
+  normaliseAmount,
+  sanitiseName,
+  sanitiseUnit,
+  type Tracker,
+} from "./trackers";
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /** Guards against a single pathological day blowing up render and storage. */
 export const MAX_ENTRIES_PER_DAY = 500;
 
-export type Targets = Readonly<Record<MacroId, number>>;
-
 export interface Entry {
   readonly id: string;
-  readonly macro: MacroId;
+  readonly trackerId: string;
   readonly amount: number;
   /** Epoch ms the entry was logged. Display only; the day key is authoritative. */
   readonly at: number;
@@ -32,7 +38,7 @@ export interface DayLog {
 }
 
 export interface Settings {
-  readonly targets: Targets;
+  readonly trackers: readonly Tracker[];
   readonly createdAt: number;
 }
 
@@ -40,6 +46,10 @@ export interface Settings {
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
+}
+
+function asId(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 && value.length <= 64 ? value : null;
 }
 
 function asEpoch(value: unknown): number | null {
@@ -50,41 +60,76 @@ function asEpoch(value: unknown): number | null {
   return Math.floor(value);
 }
 
-export function parseTargets(value: unknown): Targets | null {
+export function parseTracker(value: unknown): Tracker | null {
   const raw = asRecord(value);
   if (!raw) return null;
-  const out: Partial<Record<MacroId, number>> = {};
-  for (const id of MACRO_IDS) {
-    const n = normaliseTarget(raw[id], id);
-    if (n === null) return null;
-    out[id] = n;
+
+  const id = asId(raw["id"]);
+  if (id === null) return null;
+
+  const name = sanitiseName(raw["name"]);
+  if (name === "") return null;
+
+  const target = normaliseAmount(raw["target"]);
+  if (target === null) return null;
+
+  return {
+    id,
+    name,
+    unit: sanitiseUnit(raw["unit"]),
+    target,
+    colour: isColourId(raw["colour"]) ? raw["colour"] : DEFAULT_COLOUR,
+    archived: raw["archived"] === true,
+  };
+}
+
+export function parseTrackers(value: unknown): Tracker[] | null {
+  if (!Array.isArray(value)) return null;
+  const out: Tracker[] = [];
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (out.length >= MAX_TRACKERS) break;
+    const tracker = parseTracker(item);
+    // A single unreadable tracker is dropped rather than losing the whole set.
+    if (!tracker || seen.has(tracker.id)) continue;
+    seen.add(tracker.id);
+    out.push(tracker);
   }
-  return out as Targets;
+  return out;
 }
 
 export function parseSettings(value: unknown): Settings | null {
   const raw = asRecord(value);
   if (!raw || raw["v"] !== SCHEMA_VERSION) return null;
-  const targets = parseTargets(raw["targets"]);
-  if (!targets) return null;
-  return { targets, createdAt: asEpoch(raw["createdAt"]) ?? Date.now() };
+  const trackers = parseTrackers(raw["trackers"]);
+  if (!trackers) return null;
+  return { trackers, createdAt: asEpoch(raw["createdAt"]) ?? Date.now() };
 }
 
 export function serialiseSettings(settings: Settings): unknown {
-  return { v: SCHEMA_VERSION, targets: { ...settings.targets }, createdAt: settings.createdAt };
+  return {
+    v: SCHEMA_VERSION,
+    createdAt: settings.createdAt,
+    trackers: settings.trackers.map((t) => ({
+      id: t.id,
+      name: t.name,
+      unit: t.unit,
+      target: t.target,
+      colour: t.colour,
+      archived: t.archived,
+    })),
+  };
 }
 
 function parseEntry(value: unknown, fallbackAt: number): Entry | null {
   const raw = asRecord(value);
   if (!raw) return null;
-  const macro = raw["macro"];
-  if (!isMacroId(macro)) return null;
-  const amount = normaliseAmount(raw["amount"], macro);
+  const trackerId = asId(raw["trackerId"]);
+  if (trackerId === null) return null;
+  const amount = normaliseAmount(raw["amount"]);
   if (amount === null) return null;
-  const id = typeof raw["id"] === "string" && raw["id"].length > 0 && raw["id"].length <= 64
-    ? raw["id"]
-    : createId();
-  return { id, macro, amount, at: asEpoch(raw["at"]) ?? fallbackAt };
+  const id = asId(raw["id"]) ?? createId();
+  return { id, trackerId, amount, at: asEpoch(raw["at"]) ?? fallbackAt };
 }
 
 export function parseDayLog(value: unknown, expectedDate: DayKey): DayLog | null {
@@ -94,7 +139,7 @@ export function parseDayLog(value: unknown, expectedDate: DayKey): DayLog | null
   const rawEntries = raw["entries"];
   if (!Array.isArray(rawEntries)) return null;
 
-  const fallbackAt = new Date(`${expectedDate}T12:00:00`).getTime();
+  const fallbackAt = middayOn(expectedDate);
   const entries: Entry[] = [];
   const seen = new Set<string>();
   for (const item of rawEntries.slice(0, MAX_ENTRIES_PER_DAY)) {
@@ -112,7 +157,12 @@ export function serialiseDayLog(day: DayLog): unknown {
   return {
     v: SCHEMA_VERSION,
     date: day.date,
-    entries: day.entries.map((e) => ({ id: e.id, macro: e.macro, amount: e.amount, at: e.at })),
+    entries: day.entries.map((e) => ({
+      id: e.id,
+      trackerId: e.trackerId,
+      amount: e.amount,
+      at: e.at,
+    })),
   };
 }
 
@@ -130,7 +180,7 @@ export function serialiseIndex(days: readonly DayKey[]): unknown {
   return { v: SCHEMA_VERSION, days: [...days] };
 }
 
-/** Entry ids only need to be locally unique; they are never sent anywhere. */
+/** Ids only need to be locally unique; they are never sent anywhere. */
 export function createId(): string {
   const c = globalThis.crypto;
   if (c && typeof c.randomUUID === "function") return c.randomUUID();
@@ -141,14 +191,25 @@ export function createId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/** A neutral time-of-day for entries that arrive without a usable timestamp. */
+export function middayOn(date: DayKey): number {
+  return new Date(`${date}T12:00:00`).getTime();
+}
+
 export function emptyDay(date: DayKey): DayLog {
   return { date, entries: [] };
 }
 
-export function totalsFor(day: DayLog): Record<MacroId, number> {
-  const totals: Record<MacroId, number> = { calories: 0, protein: 0, fibre: 0 };
-  for (const entry of day.entries) totals[entry.macro] += entry.amount;
+/**
+ * Totals keyed by tracker id. A Map rather than an object because the keys are
+ * arbitrary strings and a Map has no prototype to collide with.
+ */
+export function totalsFor(day: DayLog): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const entry of day.entries) {
+    totals.set(entry.trackerId, (totals.get(entry.trackerId) ?? 0) + entry.amount);
+  }
   // Sum in float then round once, so 0.1 + 0.2 never surfaces as 0.30000000000000004.
-  for (const id of MACRO_IDS) totals[id] = Math.round(totals[id] * 10) / 10;
+  for (const [id, value] of totals) totals.set(id, Math.round(value * 10) / 10);
   return totals;
 }
