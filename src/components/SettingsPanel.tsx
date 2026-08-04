@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { csvFilename } from "@/lib/csv";
 import type { Settings } from "@/lib/schema";
+import { IS_MOBILE_BUILD } from "@/lib/target";
 import {
   addTracker,
   buildExport,
@@ -202,7 +203,7 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
     if (!file) return;
 
     if (file.size > MAX_IMPORT_BYTES) {
-      setStatus({ tone: "error", text: "That file is too large to be a MacroTracro backup." });
+      setStatus({ tone: "error", text: "That file is too large to be a TrackRyte backup." });
       return;
     }
 
@@ -458,9 +459,20 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
           </div>
         </section>
 
+        {/* The installed app and the web demo make genuinely different promises,
+            so they say genuinely different things. The absolute claim is only
+            made where connect-src 'none' actually enforces it. */}
         <p className={styles.footNote}>
-          MacroTracro stores everything in this device&apos;s local storage. It has no account
-          system, makes no network requests, and contains no analytics or tracking.
+          TrackRyte stores everything in this device&apos;s local storage. It has no account
+          system.{" "}
+          {IS_MOBILE_BUILD ? (
+            <>This app makes no network requests at all, and contains no analytics or tracking.</>
+          ) : (
+            <>
+              This web version counts anonymous page views — no cookies, no identifiers, and never
+              anything you log. Your entries and targets stay on this device.
+            </>
+          )}
         </p>
       </div>
     </dialog>

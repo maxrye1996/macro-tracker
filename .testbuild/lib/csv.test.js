@@ -49,7 +49,7 @@ const days = [
 (0, node_test_1.test)("export is stable, so an unchanged log produces an identical file", () => {
     strict_1.default.equal((0, csv_1.exportCsv)(trackers, days), (0, csv_1.exportCsv)(trackers, [...days].reverse()));
 });
-(0, node_test_1.test)("import rejects a file that is not a MacroTracro export", () => {
+(0, node_test_1.test)("import rejects a file that is not a TrackRyte export", () => {
     const result = (0, csv_1.parseCsv)("name,calories\nBanana,105\n");
     strict_1.default.equal(result.ok, false);
     if (!result.ok)

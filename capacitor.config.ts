@@ -1,8 +1,10 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.macrotracro.app",
-  appName: "MacroTracro",
+  // Permanent once the app is first submitted: the store listing, its reviews
+  // and its installs are all keyed to this. Change it only before publishing.
+  appId: "com.trackryte.app",
+  appName: "TrackRyte",
   // The statically exported Next.js bundle.
   webDir: "out",
   server: {

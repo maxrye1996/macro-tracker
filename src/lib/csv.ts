@@ -194,7 +194,7 @@ function collectDays(
 
 export function parseCsv(text: string): ImportOutcome {
   if (text.length > MAX_IMPORT_BYTES) {
-    return { ok: false, error: "That file is too large to be a MacroTracro backup." };
+    return { ok: false, error: "That file is too large to be a TrackRyte backup." };
   }
 
   const cleaned = text.replace(/^﻿/, "");
@@ -204,7 +204,7 @@ export function parseCsv(text: string): ImportOutcome {
   const header = (rows[0] ?? []).map((h) => h.trim().toLowerCase()).join(",");
   if (header === LEGACY_HEADER.join(",")) return parseLegacy(rows);
   if (header !== CSV_HEADER.join(",")) {
-    return { ok: false, error: "Unrecognised file. Expected a CSV exported from MacroTracro." };
+    return { ok: false, error: "Unrecognised file. Expected a CSV exported from TrackRyte." };
   }
 
   const trackers: Tracker[] = [];
@@ -359,5 +359,5 @@ export function csvFilename(now: Date = new Date()): string {
   const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
     now.getDate(),
   ).padStart(2, "0")}`;
-  return `macrotracro-${stamp}.csv`;
+  return `trackryte-${stamp}.csv`;
 }

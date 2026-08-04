@@ -11,6 +11,7 @@ import {
   setTrackers,
   subscribe,
 } from "@/lib/store";
+import { Brand } from "./Brand";
 import { Setup } from "./Setup";
 import { SettingsPanel } from "./SettingsPanel";
 import { DayScreen } from "./DayScreen";
@@ -67,7 +68,7 @@ export function App() {
   if (!state.hydrated) {
     return (
       <main className={styles.splash} aria-busy="true">
-        MacroTracro
+        <Brand size="lg" />
       </main>
     );
   }

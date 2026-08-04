@@ -1,5 +1,5 @@
 {
-  "name": "macrotracro",
+  "name": "trackryte",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,11 +10,12 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "rm -rf .testbuild && tsc -p tsconfig.test.json && printf '{\"type\":\"commonjs\"}' > .testbuild/package.json && node --test '.testbuild/**/*.test.js'",
-    "sync": "npm run build && cap sync",
+    "sync": "NEXT_PUBLIC_BUILD_TARGET=mobile npm run build && cap sync",
     "ios": "npm run sync && cap open ios",
     "android": "npm run sync && cap open android"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "next": "16.2.12",
     "react": "19.2.8",
     "react-dom": "19.2.8"

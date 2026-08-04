@@ -16,13 +16,10 @@
 
 .brand {
   margin: 0;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.dot {
-  color: var(--c-green);
+  /* The heading is only a wrapper for the logo plate now, so the line box is
+     zeroed: the inherited line-height would otherwise pad the topbar. */
+  display: flex;
+  line-height: 0;
 }
 
 .iconButton {

@@ -6,6 +6,7 @@ import type { Settings } from "@/lib/schema";
 import { totalsFor } from "@/lib/schema";
 import { addEntry, goToDate, removeEntry, shiftDay, type AppState } from "@/lib/store";
 import { colourVar, formatWithUnit } from "@/lib/trackers";
+import { Brand } from "./Brand";
 import { TrackerCard } from "./TrackerCard";
 import styles from "./DayScreen.module.css";
 
@@ -39,7 +40,7 @@ export function DayScreen({ state, settings, onOpenSettings }: Props) {
     <main className={styles.screen}>
       <header className={styles.topbar}>
         <h1 className={styles.brand}>
-          MacroTracro<span className={styles.dot}>.</span>
+          <Brand />
         </h1>
         <button
           type="button"

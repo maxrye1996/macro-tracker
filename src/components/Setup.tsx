@@ -15,6 +15,7 @@ import {
   type Suggestion,
   type Tracker,
 } from "@/lib/trackers";
+import { Brand } from "./Brand";
 import { TrackerFields, type TrackerDraftValues } from "./TrackerFields";
 import styles from "./Setup.module.css";
 
@@ -100,7 +101,7 @@ export function Setup({ onDone }: { readonly onDone: (trackers: readonly Tracker
     <main className={styles.screen}>
       <div>
         <h1 className={styles.brand}>
-          MacroTracro<span className={styles.dot}>.</span>
+          <Brand size="lg" />
         </h1>
         <p className={styles.lede}>
           Track whatever you actually care about — calories, water, salt, a medication dose.

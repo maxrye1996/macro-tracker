@@ -55,7 +55,7 @@ test("export is stable, so an unchanged log produces an identical file", () => {
   assert.equal(exportCsv(trackers, days), exportCsv(trackers, [...days].reverse()));
 });
 
-test("import rejects a file that is not a MacroTracro export", () => {
+test("import rejects a file that is not a TrackRyte export", () => {
   const result = parseCsv("name,calories\nBanana,105\n");
   assert.equal(result.ok, false);
   if (!result.ok) assert.match(result.error, /Unrecognised/);

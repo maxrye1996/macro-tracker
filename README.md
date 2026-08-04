@@ -1,11 +1,16 @@
-# MacroTracro
+# TrackRyte
 
 A private, offline daily tracker. You define what you track — calories, protein, water,
 salt, a medication dose, steps — set your own targets, and log numbers by hand. There is no
-food database, no account, no server, and no analytics.
+food database, no account and no server.
 
-Everything is stored in the browser's local storage on the device. Nothing is ever sent
-anywhere.
+Everything is stored in the browser's local storage on the device. What you log is never
+sent anywhere, on any build.
+
+The hosted web demo counts anonymous page views through Vercel Analytics: no cookies, no
+identifiers, nothing about the data you enter. The packaged iOS/Android app ships no
+analytics and is blocked from making any network request whatsoever — see
+[Build targets](#build-targets).
 
 ## Commands
 
@@ -59,9 +64,11 @@ a lost index never hides your history.
 
 ## Security decisions
 
-- **`connect-src 'none'`** in the Content-Security-Policy. The browser makes network
-  requests impossible, so "your data never leaves the device" does not depend on nobody
-  ever adding a `fetch` by accident. Relaxed in dev only, for hot reload.
+- **`connect-src` decides whether the app can reach a network at all.** The mobile build
+  gets `'none'`, so "your data never leaves the device" does not depend on nobody ever
+  adding a `fetch` by accident — the browser makes it impossible. The web build gets
+  `'self'` for the analytics beacon, which still means no third-party host is reachable.
+  Dev adds websockets for hot reload. See [Build targets](#build-targets).
 - **Every read from storage is re-validated.** localStorage can be edited by hand, corrupted
   by a half-finished write, or written by a different version of the app. Parsers in
   `schema.ts` read field by field and never spread parsed JSON into app state, which is also
@@ -74,8 +81,24 @@ a lost index never hides your history.
 - **Import is bounded and defensive**: size- and row-capped, every field re-validated, and
   unreadable rows skipped and counted rather than aborting the whole restore.
 - No `dangerouslySetInnerHTML` anywhere; ESLint enforces it.
-- No web fonts, no icons from a CDN, no analytics. The dependency tree is Next, React and
-  Capacitor.
+- No web fonts and no icons from a CDN — nothing is fetched from a third-party origin. The
+  dependency tree is Next, React, Capacitor and `@vercel/analytics` (web build only).
+
+## Build targets
+
+`NEXT_PUBLIC_BUILD_TARGET` picks which of two policies gets compiled in. `npm run build`
+produces the web build; `npm run sync` sets `mobile` before building, so the native apps
+can only ever be made from the locked-down one.
+
+| | web (`out/` on Vercel) | mobile (Capacitor) |
+| --- | --- | --- |
+| `connect-src` | `'self'` | `'none'` |
+| Analytics | Vercel Analytics, same-origin beacon | none — the component is not rendered |
+| CSP delivered by | HTTP header from `vercel.json` | `<meta>` tag; there is no server |
+
+`src/lib/csp.ts` is the single source of the policy string and `src/lib/csp.test.ts` fails
+the build if `vercel.json` drifts from it, if the mobile target ever loses `connect-src
+'none'`, or if any directive other than `connect-src` differs between the two.
 
 ## Performance notes
 

@@ -10,13 +10,8 @@
 
 .brand {
   margin: 0;
-  font-size: 26px;
-  font-weight: 750;
-  letter-spacing: -0.03em;
-}
-
-.dot {
-  color: var(--c-green);
+  display: flex;
+  line-height: 0;
 }
 
 .lede {
