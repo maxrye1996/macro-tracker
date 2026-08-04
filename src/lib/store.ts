@@ -13,7 +13,6 @@
 
 import { exportCsv, parseCsv, type ImportOutcome } from "./csv";
 import { addDays, todayKey, type DayKey } from "./date";
-import { migrateLegacy } from "./migrate";
 import {
   createId,
   emptyDay,
@@ -123,17 +122,8 @@ export function hydrate(): void {
   hydrating = true;
 
   const storageOk = storageAvailable();
-  let settings = storageOk ? parseSettings(readJson(KEYS.settings)) : null;
-  let loggedDays = (storageOk ? parseIndex(readJson(KEYS.index)) : null) ?? recoverIndex();
-
-  // Nothing under the current schema — see whether an older install is there.
-  if (storageOk && !settings) {
-    const migrated = migrateLegacy();
-    if (migrated) {
-      settings = migrated.settings;
-      loggedDays = migrated.days;
-    }
-  }
+  const settings = storageOk ? parseSettings(readJson(KEYS.settings)) : null;
+  const loggedDays = (storageOk ? parseIndex(readJson(KEYS.index)) : null) ?? recoverIndex();
 
   const today = todayKey();
   state = {

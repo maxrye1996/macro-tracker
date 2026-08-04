@@ -18,7 +18,6 @@ import {
   normaliseAmount,
   sanitiseName,
   sanitiseUnit,
-  type ColourId,
   type Tracker,
 } from "./trackers";
 
@@ -33,15 +32,6 @@ export const CSV_HEADER = [
   "colour",
   "archived",
 ] as const;
-
-/** The pre-tracker export format, still accepted on import. */
-const LEGACY_HEADER = ["type", "date", "macro", "amount", "logged_at"] as const;
-
-const LEGACY_UNITS: Record<string, { name: string; unit: string; colour: ColourId }> = {
-  calories: { name: "Calories", unit: "kcal", colour: "amber" },
-  protein: { name: "Protein", unit: "g", colour: "blue" },
-  fibre: { name: "Fibre", unit: "g", colour: "green" },
-};
 
 /** Refuse anything implausible for a personal log. */
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
@@ -202,7 +192,6 @@ export function parseCsv(text: string): ImportOutcome {
   if (rows.length === 0) return { ok: false, error: "That file is empty." };
 
   const header = (rows[0] ?? []).map((h) => h.trim().toLowerCase()).join(",");
-  if (header === LEGACY_HEADER.join(",")) return parseLegacy(rows);
   if (header !== CSV_HEADER.join(",")) {
     return { ok: false, error: "Unrecognised file. Expected a CSV exported from TrackRyte." };
   }
@@ -277,68 +266,6 @@ export function parseCsv(text: string): ImportOutcome {
       entry: {
         id: createId(),
         trackerId: tracker.id,
-        amount,
-        at: Number.isFinite(parsedAt) ? parsedAt : middayOn(date),
-      },
-    });
-  }
-
-  const { days, skipped: overflow } = collectDays(staged);
-  const imported = staged.length - overflow;
-
-  if (trackers.length === 0 && imported === 0) {
-    return { ok: false, error: "No usable trackers or entries found in that file." };
-  }
-
-  return { ok: true, value: { trackers, days, imported, skipped: skipped + overflow } };
-}
-
-/** Reads the original `type,date,macro,amount,logged_at` export. */
-function parseLegacy(rows: string[][]): ImportOutcome {
-  const trackers: Tracker[] = [];
-  const byId = new Map<string, Tracker>();
-  let skipped = 0;
-
-  for (let i = 1; i < rows.length; i += 1) {
-    const cells = rows[i];
-    if (!cells || clean(cells[0]) !== "target") continue;
-    const macro = clean(cells[2]).toLowerCase();
-    const meta = LEGACY_UNITS[macro];
-    const target = normaliseAmount(clean(cells[3]));
-    if (!meta || target === null || byId.has(macro)) {
-      skipped += 1;
-      continue;
-    }
-    const tracker: Tracker = { id: macro, ...meta, target, archived: false };
-    trackers.push(tracker);
-    byId.set(macro, tracker);
-  }
-
-  const staged: { date: DayKey; entry: Entry }[] = [];
-  for (let i = 1; i < rows.length; i += 1) {
-    const cells = rows[i];
-    if (!cells) continue;
-    const type = clean(cells[0]);
-    if (type === "target") continue;
-    if (type !== "entry") {
-      skipped += 1;
-      continue;
-    }
-
-    const date = clean(cells[1]);
-    const macro = clean(cells[2]).toLowerCase();
-    const amount = normaliseAmount(clean(cells[3]));
-    if (!isDayKey(date) || amount === null || !byId.has(macro)) {
-      skipped += 1;
-      continue;
-    }
-
-    const parsedAt = Date.parse(clean(cells[4]));
-    staged.push({
-      date,
-      entry: {
-        id: createId(),
-        trackerId: macro,
         amount,
         at: Number.isFinite(parsedAt) ? parsedAt : middayOn(date),
       },

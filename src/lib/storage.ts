@@ -12,23 +12,10 @@
 
 const PREFIX = "mt.v2.";
 
-/** Pre-tracker schema, read once at startup so existing logs are not lost. */
-const LEGACY_PREFIX = "mt.v1.";
-
-/** Every namespace the app has ever owned, for enumeration and wiping. */
-const ALL_PREFIXES = [PREFIX, LEGACY_PREFIX] as const;
-
 export const KEYS = {
   settings: `${PREFIX}settings`,
   index: `${PREFIX}index`,
   day: (date: string) => `${PREFIX}day.${date}`,
-} as const;
-
-export const LEGACY_KEYS = {
-  settings: `${LEGACY_PREFIX}settings`,
-  index: `${LEGACY_PREFIX}index`,
-  day: (date: string) => `${LEGACY_PREFIX}day.${date}`,
-  prefix: LEGACY_PREFIX,
 } as const;
 
 export function isDayStorageKey(key: string): boolean {
@@ -36,7 +23,7 @@ export function isDayStorageKey(key: string): boolean {
 }
 
 export function isOwnedKey(key: string): boolean {
-  return ALL_PREFIXES.some((p) => key.startsWith(p));
+  return key.startsWith(PREFIX);
 }
 
 /**
@@ -104,7 +91,7 @@ export function removeKey(key: string): void {
   }
 }
 
-/** Every key this app owns, current and legacy. */
+/** Every key this app owns. */
 export function ownedKeys(): string[] {
   const s = store();
   if (!s) return [];
@@ -122,10 +109,4 @@ export function ownedKeys(): string[] {
 
 export function clearAll(): void {
   for (const key of ownedKeys()) removeKey(key);
-}
-
-export function clearLegacy(): void {
-  for (const key of ownedKeys()) {
-    if (key.startsWith(LEGACY_PREFIX)) removeKey(key);
-  }
 }

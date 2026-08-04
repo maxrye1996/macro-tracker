@@ -38,8 +38,7 @@ src/lib/          data layer, no React, fully unit-tested
   schema.ts       persisted shapes + the parsers that guard every read
   storage.ts      the only module that touches localStorage
   store.ts        external store behind useSyncExternalStore; all mutations
-  csv.ts          export/import, including the pre-tracker format
-  migrate.ts      one-shot upgrade from the original fixed-macro schema
+  csv.ts          export/import
   date.ts         local-timezone day keys
 src/components/   UI, one CSS module each
 ```
@@ -140,9 +139,6 @@ entry,2026-08-01,t-cal,Calories,kcal,450,2026-08-01T08:30:00.000Z,,
 values. Entries match a tracker by id, falling back to name, so a hand-edited file works.
 Import **replaces** everything on the device — merging would silently double every entry if
 you imported the same file twice.
-
-The original `type,date,macro,amount,logged_at` format still imports, and an existing
-install of the fixed calories/protein/fibre schema is migrated automatically on first launch.
 
 ## Behaviour worth knowing
 

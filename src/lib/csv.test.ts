@@ -196,24 +196,15 @@ test("a name containing a comma or a quote survives a round trip", () => {
   assert.equal(back.value.trackers[0]?.name, 'Salt, "added"');
 });
 
-test("the original fixed-macro export format still imports", () => {
-  // Someone who exported before trackers existed must not lose their backup.
-  const legacy = [
+test("a file with an unknown header is rejected, not guessed at", () => {
+  // The pre-release fixed-macro format is no longer accepted: it never
+  // shipped, so no real backup uses it and guessing invites bad imports.
+  const unknown = [
     "type,date,macro,amount,logged_at",
-    "target,,calories,2000,",
-    "target,,protein,150,",
-    "target,,fibre,30,",
     "entry,2026-08-01,calories,450,2026-08-01T08:30:00.000Z",
-    "entry,2026-08-01,protein,30,",
-    "entry,2026-08-01,vitamins,10,", // unknown macro
   ].join("\r\n");
 
-  const result = parseCsv(legacy);
-  assert.ok(result.ok, result.ok ? "" : result.error);
-  assert.equal(result.value.trackers.length, 3);
-  assert.equal(result.value.trackers[0]?.name, "Calories");
-  assert.equal(result.value.trackers[0]?.unit, "kcal");
-  assert.equal(result.value.imported, 2);
-  assert.equal(result.value.skipped, 1);
-  assert.equal(result.value.days[0]?.entries[0]?.at, Date.UTC(2026, 7, 1, 8, 30));
+  const result = parseCsv(unknown);
+  assert.ok(!result.ok);
+  assert.match(result.error, /Unrecognised file/);
 });
