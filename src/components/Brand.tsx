@@ -19,7 +19,7 @@ export function Brand({ size = "sm" }: { size?: "sm" | "lg" }) {
           optimise nothing. The intrinsic width/height reserve the box before
           the file loads, so the header never shifts. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand.png" alt="TrackRyte" width={614} height={96} className={styles.image} />
+      <img src="/brand.png" alt="TrackRyte" width={619} height={96} className={styles.image} />
     </span>
   );
 }
