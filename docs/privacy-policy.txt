@@ -1,0 +1,91 @@
+TrackRyte Privacy Policy
+
+Effective date: 8 August 2026
+TrackRyte is made by get-a-site.co.uk.
+
+The short version: everything you log in TrackRyte stays on your device.
+We cannot see it, we do not collect it, and we have no server that could
+receive it.
+
+
+1. What TrackRyte is
+
+TrackRyte is a daily tracking app. You choose what to track (for example
+calories, water or a medication dose), set your own targets, and log
+values by hand. It is available as an Android app, an iOS app, and a web
+app.
+
+
+2. The mobile app collects no data
+
+The Android and iOS apps have no account system, no sign-up, and no
+analytics. They make no network requests of any kind. This is enforced
+technically, not just promised: the app ships with a Content Security
+Policy of "connect-src 'none'", which means the app is blocked by the
+operating system's own webview from talking to any server, including
+ours.
+
+Everything you enter - trackers, targets and logged values - is stored
+in local storage on your device only. Deleting the app deletes this
+data. We never receive a copy at any point.
+
+
+3. The website and web version
+
+The web version of TrackRyte works the same way: your trackers, targets
+and logged values are stored in your browser's local storage on your
+device and are never sent anywhere.
+
+The website uses Vercel Analytics to count anonymous page views. This
+records that a page was visited, but uses no cookies and creates no
+profile, and it never includes anything you log in the app. We use these
+counts only to see whether anyone is visiting the site.
+
+Our hosting provider (Vercel Inc.) receives the standard technical
+information any web server receives when you load a page, such as your
+IP address. This is used to deliver the page and is subject to Vercel's
+privacy policy.
+
+
+4. Backups and exports
+
+TrackRyte can export your data as a CSV file so you can back it up or
+move to a new phone. That file is created on your device and saved
+wherever you choose. What happens to it after that is in your hands - we
+never see it. If you store it with a cloud service, that service's
+privacy policy applies to the copy you put there.
+
+
+5. Data sharing
+
+We do not sell, share, trade or transfer any personal data, because we
+do not hold any. There is nothing to hand over, even if asked.
+
+
+6. Children
+
+TrackRyte does not collect personal data from anyone, including
+children.
+
+
+7. Your rights
+
+Under UK GDPR and similar laws you have rights over personal data an
+organisation holds about you. TrackRyte holds none: your data is on
+your device, under your direct control. You can view it in the app,
+export it as CSV, or erase it permanently with the "Delete all data"
+button in Settings (or by uninstalling the app).
+
+
+8. Changes to this policy
+
+If TrackRyte ever changes in a way that affects privacy - which would
+go against the reason it was built - this policy will be updated and
+the effective date above will change. The current version is always at
+this address.
+
+
+9. Contact
+
+Questions about this policy: trackryte@get-a-site.co.uk
+Website: https://get-a-site.co.uk

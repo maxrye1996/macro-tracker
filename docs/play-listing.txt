@@ -1,0 +1,42 @@
+TrackRyte - Google Play listing copy
+=====================================
+
+SHORT DESCRIPTION (69/80 chars)
+-------------------------------
+Track calories, water, walks, anything. Everything stays on your phone.
+
+
+FULL DESCRIPTION
+----------------
+TrackRyte is a daily tracker with a simple promise: what you log is nobody's business but yours.
+
+TRACK ANYTHING
+
+You decide what matters. Calories, protein, fibre, water, salt, steps, dog walks, baby feeds, medication doses, cups of coffee. If it has a number, you can track it. Set your own daily target for each thing, log values with a couple of taps, and watch the thermometer fill as you go.
+
+No food database, no barcode scanner, no guesswork done on your behalf. TrackRyte is for people who already know their numbers and just want a fast, private place to keep count.
+
+ACTUALLY PRIVATE
+
+Most apps say they care about privacy. TrackRyte is built so it has no choice:
+
+• No account and no sign up
+• No ads, no analytics, no tracking
+• Works completely offline
+• The app is technically blocked from making network requests, so your data cannot be sent anywhere, even by accident
+
+Everything you log lives on your phone and nowhere else. We never see it. There is no server that could.
+
+SIMPLE ON PURPOSE
+
+• Up to 20 trackers, each with its own colour, unit and daily target
+• Quick add buttons for fast logging
+• A day view so you can look back at your history
+• Values reset each day at midnight, your history stays
+• Removing a tracker never deletes its history
+
+YOUR DATA, YOUR BACKUP
+
+Export everything as a CSV file you can open in any spreadsheet, and import it again on a new phone. Because there is no account and no cloud, your export is the only backup that exists. That is the honest trade for total privacy, and the app reminds you of it.
+
+Free, small (under 4 MB), and does one thing well.

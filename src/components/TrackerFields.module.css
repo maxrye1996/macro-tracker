@@ -73,7 +73,10 @@
 }
 
 .unit {
-  flex: 0 0 82px;
+  /* Equal split with the target box: a fixed width starved the target of
+     space on narrow screens. */
+  flex: 1 1 0;
+  min-width: 0;
   height: var(--tap);
   padding: 0 10px;
   font-size: 15px;
