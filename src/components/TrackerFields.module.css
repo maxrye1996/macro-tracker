@@ -34,6 +34,9 @@
 
 .name {
   flex: 1;
+  /* See TrackerCard .input: kill the ~20ch intrinsic width so narrow screens
+     never inherit a minimum wider than the viewport. */
+  width: 0;
   min-width: 0;
   height: var(--tap);
   padding: 0 10px;
@@ -60,6 +63,7 @@
 
 .number {
   flex: 1 1 0;
+  width: 0;
   min-width: 0;
   height: var(--tap);
   padding: 0 10px;
@@ -76,6 +80,7 @@
   /* Equal split with the target box: a fixed width starved the target of
      space on narrow screens. */
   flex: 1 1 0;
+  width: 0;
   min-width: 0;
   height: var(--tap);
   padding: 0 10px;

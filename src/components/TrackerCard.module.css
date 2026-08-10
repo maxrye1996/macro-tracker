@@ -66,6 +66,11 @@
 }
 
 .input {
+  /* width: 0 + flex-grow: fill the row but contribute no intrinsic width.
+     A text input's default ~20ch intrinsic width otherwise sets the card's
+     minimum size, which cascades up and makes mobile browsers inflate the
+     whole layout viewport once enough cards are in the rail. */
+  width: 0;
   min-width: 0;
   flex: 1;
   height: var(--tap);

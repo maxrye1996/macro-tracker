@@ -92,6 +92,12 @@
 .rail {
   display: flex;
   gap: 8px;
+  /* Defence in depth: the rail's intrinsic width (the sum of every card)
+     must not propagate to the document. Note this does NOT stop every mobile
+     engine from inflating the layout viewport — some do it for off-screen
+     focusable controls regardless — which is why the settings dialog also
+     pins itself to the visual viewport in SettingsPanel. */
+  contain: inline-size;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;

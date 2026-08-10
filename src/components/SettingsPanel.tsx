@@ -61,10 +61,40 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
 
   // `showModal` gives a real focus trap, inert background and Escape-to-close
   // without shipping a modal library.
+  //
+  // The inline positioning exists because mobile engines (Android WebView and
+  // Chrome) sometimes lay the page out wider than the screen — with enough
+  // trackers, the rail's off-screen inputs make the browser inflate the layout
+  // viewport. A dialog centred with CSS centres in that inflated viewport and
+  // can land entirely off the visible screen. Pinning to the *visual* viewport
+  // is correct no matter what the layout viewport is doing; when the two match
+  // (every desktop browser), this computes the exact same centred geometry the
+  // CSS would.
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog || dialog.open) return;
     dialog.showModal();
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const pin = () => {
+      const width = Math.min(560, vv.width);
+      dialog.style.margin = "0";
+      dialog.style.left = `${vv.offsetLeft + (vv.width - width) / 2}px`;
+      dialog.style.top = `${vv.offsetTop}px`;
+      dialog.style.width = `${width}px`;
+      dialog.style.height = `${vv.height}px`;
+    };
+    pin();
+    // Follows the visual viewport while open: panning a zoomed page, rotation,
+    // and the on-screen keyboard (which shrinks vv.height, keeping the focused
+    // field visible instead of hiding it behind the keyboard).
+    vv.addEventListener("resize", pin);
+    vv.addEventListener("scroll", pin);
+    return () => {
+      vv.removeEventListener("resize", pin);
+      vv.removeEventListener("scroll", pin);
+    };
   }, []);
 
   const active = settings.trackers.filter((t) => !t.archived);
