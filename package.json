@@ -1,11 +1,12 @@
 {
   "name": "trackryte",
-  "version": "0.1.0",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "version:sync": "node scripts/sync-version.mjs",
+    "build": "npm run version:sync && next build",
     "start": "npx serve out",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

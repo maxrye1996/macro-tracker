@@ -5,6 +5,7 @@ import { csvFilename } from "@/lib/csv";
 import type { Settings } from "@/lib/schema";
 import { IS_MOBILE_BUILD } from "@/lib/target";
 import { getThemePref, setThemePref, type ThemePref } from "@/lib/theme";
+import { VERSION } from "@/lib/version";
 import {
   addTracker,
   buildExport,
@@ -501,6 +502,29 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
         </section>
 
         <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>Follow</h3>
+          <div className={styles.actions}>
+            {/* A plain link, not a fetch: it opens in the system browser (the
+                webview refuses the navigation), so the app itself still makes
+                no network requests. */}
+            <a
+              className={styles.action}
+              href="https://www.facebook.com/profile.php?id=61592952727356"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span>
+                Follow TrackRyte on Facebook
+                <span className={styles.actionHint}>News and updates</span>
+              </span>
+              <span className={styles.chevron} aria-hidden="true">
+                ›
+              </span>
+            </a>
+          </div>
+        </section>
+
+        <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Data</h3>
           <div className={styles.actions}>
             <button
@@ -534,6 +558,9 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
             </>
           )}
         </p>
+
+        {/* Testers reporting a bug need to say which build they are on. */}
+        <p className={styles.version}>Version {VERSION}</p>
       </div>
     </dialog>
   );
