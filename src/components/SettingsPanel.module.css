@@ -75,6 +75,28 @@
   color: var(--text-dim);
 }
 
+.segmented {
+  display: flex;
+  gap: 6px;
+}
+
+.segment {
+  flex: 1;
+  height: var(--tap);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.segmentActive {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-weight: 650;
+}
+
 .trackerList {
   display: flex;
   flex-direction: column;

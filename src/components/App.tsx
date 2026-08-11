@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { msUntilNextLocalMidnight } from "@/lib/date";
+import { KEYS } from "@/lib/storage";
+import { applyThemePref, getThemePref } from "@/lib/theme";
 import {
   getServerSnapshot,
   getSnapshot,
@@ -51,6 +53,10 @@ export function App() {
     // Another tab of the web build writing to storage.
     const onStorage = (event: StorageEvent) => {
       if (event.key !== null && !event.key.startsWith("mt.")) return;
+      if (event.key === KEYS.theme) {
+        applyThemePref(getThemePref());
+        return;
+      }
       reloadFromStorage();
     };
 

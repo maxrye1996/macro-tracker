@@ -39,6 +39,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           )}
         />
         <meta name="referrer" content="no-referrer" />
+        {/* Applies a forced theme before first paint so choosing Light on a
+            dark-mode device never flashes dark at launch. This is the one
+            sanctioned use of dangerouslySetInnerHTML in the codebase: the
+            string below is a compile-time constant with no interpolation, so
+            nothing user-controlled can reach it. It reads the same key
+            lib/theme.ts owns. */}
+        <script
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{var t=localStorage.getItem("mt.v2.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}',
+          }}
+        />
       </head>
       <body>
         {children}

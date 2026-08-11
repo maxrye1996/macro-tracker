@@ -16,6 +16,7 @@ export const KEYS = {
   settings: `${PREFIX}settings`,
   index: `${PREFIX}index`,
   day: (date: string) => `${PREFIX}day.${date}`,
+  theme: `${PREFIX}theme`,
 } as const;
 
 export function isDayStorageKey(key: string): boolean {
@@ -75,6 +76,32 @@ export function writeJson(key: string, value: unknown): boolean {
   if (!s) return false;
   try {
     s.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Raw string read/write, for values that are not JSON. The theme preference
+ * is stored bare ("light", not "\"light\"") so the pre-paint script in the
+ * page head can compare it without parsing.
+ */
+export function readString(key: string): string | null {
+  const s = store();
+  if (!s) return null;
+  try {
+    return s.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+export function writeString(key: string, value: string): boolean {
+  const s = store();
+  if (!s) return false;
+  try {
+    s.setItem(key, value);
     return true;
   } catch {
     return false;

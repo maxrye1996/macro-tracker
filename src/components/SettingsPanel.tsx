@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { csvFilename } from "@/lib/csv";
 import type { Settings } from "@/lib/schema";
 import { IS_MOBILE_BUILD } from "@/lib/target";
+import { getThemePref, setThemePref, type ThemePref } from "@/lib/theme";
 import {
   addTracker,
   buildExport,
@@ -32,6 +33,12 @@ const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
 type Status = { readonly tone: "info" | "error"; readonly text: string } | null;
 
+const THEME_OPTIONS: readonly { value: ThemePref; label: string }[] = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
+
 function toDraft(tracker: Tracker): TrackerDraftValues {
   return {
     name: tracker.name,
@@ -58,6 +65,9 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
   const [edits, setEdits] = useState<Record<string, TrackerDraftValues>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [newDraft, setNewDraft] = useState<TrackerDraftValues | null>(null);
+  // Lazy initialiser: the dialog only ever mounts client-side, after hydration,
+  // so reading localStorage here is safe.
+  const [theme, setTheme] = useState<ThemePref>(() => getThemePref());
 
   // `showModal` gives a real focus trap, inert background and Escape-to-close
   // without shipping a modal library.
@@ -406,6 +416,26 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
             })}
           </section>
         )}
+
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>Appearance</h3>
+          <div className={styles.segmented} role="group" aria-label="Theme">
+            {THEME_OPTIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                className={`${styles.segment}${theme === value ? ` ${styles.segmentActive}` : ""}`}
+                aria-pressed={theme === value}
+                onClick={() => {
+                  setTheme(value);
+                  setThemePref(value);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
 
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Backup</h3>

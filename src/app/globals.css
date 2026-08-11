@@ -35,8 +35,11 @@
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.25);
 }
 
+/* Light tokens apply two ways: the device prefers light and the user has not
+   forced dark (Settings → Appearance), or the user forced light. The block is
+   duplicated because a media-query body cannot be referenced from a selector. */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]) {
     --bg: #f6f7f9;
     --surface: #ffffff;
     --surface-2: #f1f3f6;
@@ -59,6 +62,38 @@
 
     --shadow: 0 1px 2px rgb(16 24 40 / 0.06), 0 8px 24px rgb(16 24 40 / 0.06);
   }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --border: #e2e6ec;
+  --text: #12151a;
+  --text-dim: #5b6472;
+  --text-faint: #8a93a1;
+
+  --c-amber: #d97706;
+  --c-blue: #4361e8;
+  --c-green: #17a06a;
+  --c-violet: #7c3aed;
+  --c-rose: #db2777;
+  --c-cyan: #0e8ba8;
+  --c-lime: #65a30d;
+  --c-slate: #64748b;
+
+  --danger: #d63a3a;
+  --warn: #a97a06;
+
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.06), 0 8px 24px rgb(16 24 40 / 0.06);
+}
+
+/* Forced dark: the :root defaults are already dark, so only the browser
+   chrome hint needs pinning. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 *,
