@@ -7,6 +7,13 @@ and `npm run sync` both call). Bump the constant, add an entry here, build.
 Play Store `versionCode` is derived from the version: `0.0.2` is 2, `0.1.0`
 is 100, `1.2.3` is 10203.
 
+## 0.0.4 — 2026-08-12
+
+- **Fixed: add-tracker validation appeared at the top of Settings.** When a new
+  tracker was missing its target (or name), the error showed in the panel
+  header, away from the form. It now shows on the tracker's own card, right
+  above the Cancel and Add tracker buttons, and clears as you type.
+
 ## 0.0.3 — 2026-08-12
 
 Everything since the first closed-test build: fixes found in testing and the

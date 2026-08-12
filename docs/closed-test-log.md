@@ -49,6 +49,13 @@ Fat, Sugar, Salt), renamed Caffeine to Coffee measured in cups, and added Baby
 feeds (oz) and Creatine (doses). The suggestions now show up in the Settings
 add-tracker screen too, not just on first run.
 
+### 2026-08-12 — v0.0.4, add-tracker validation fix
+
+More tester feedback: adding a tracker without a target put the validation
+message at the very top of the Settings panel, nowhere near the button you'd
+just tapped. Moved it onto the tracker's own card, above the Cancel and Add
+tracker buttons, and it clears as you start typing.
+
 <!-- New entry template:
 
 ### YYYY-MM-DD — short heading

@@ -68,6 +68,9 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
   const [edits, setEdits] = useState<Record<string, TrackerDraftValues>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [newDraft, setNewDraft] = useState<TrackerDraftValues | null>(null);
+  // Validation for the in-progress new tracker, shown inline on its card
+  // (above the Cancel/Add buttons) rather than in the top-of-panel status.
+  const [newError, setNewError] = useState<string | null>(null);
   // Lazy initialiser: the dialog only ever mounts client-side, after hydration,
   // so reading localStorage here is safe.
   const [theme, setTheme] = useState<ThemePref>(() => getThemePref());
@@ -125,6 +128,7 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
   // from the suggestion; the target is left blank for the user to set, same as
   // the first-run flow — the app ships no recommended values.
   const startSuggestion = (suggestion: Suggestion) => {
+    setNewError(null);
     setNewDraft({
       name: suggestion.name,
       unit: suggestion.unit,
@@ -191,6 +195,11 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
     });
   };
 
+  const cancelAdd = () => {
+    setNewDraft(null);
+    setNewError(null);
+  };
+
   const confirmAdd = () => {
     if (!newDraft) return;
     const result = addTracker({
@@ -200,20 +209,19 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
       colour: newDraft.colour,
     });
     if (result === "full") {
-      setStatus({ tone: "error", text: `You can have at most ${MAX_TRACKERS} trackers.` });
+      setNewError(`You can have at most ${MAX_TRACKERS} trackers.`);
       return;
     }
     if (result === "invalid") {
-      setStatus({
-        tone: "error",
-        text:
-          sanitiseName(newDraft.name) === ""
-            ? "Give the new tracker a name."
-            : `Set a target between 1 and ${VALUE_MAX.toLocaleString()}.`,
-      });
+      setNewError(
+        sanitiseName(newDraft.name) === ""
+          ? "Give the new tracker a name."
+          : `Set a target between 1 and ${VALUE_MAX.toLocaleString()}.`,
+      );
       return;
     }
     setNewDraft(null);
+    setNewError(null);
     setStatus({ tone: "info", text: `${sanitiseName(newDraft.name)} added.` });
   };
 
@@ -365,12 +373,16 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
                 <TrackerFields
                   value={newDraft}
                   autoFocus
-                  onChange={(patch) => setNewDraft((prev) => (prev ? { ...prev, ...patch } : prev))}
-                  onRemove={() => setNewDraft(null)}
+                  error={newError ?? undefined}
+                  onChange={(patch) => {
+                    setNewError(null);
+                    setNewDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+                  }}
+                  onRemove={cancelAdd}
                   removeLabel="Discard new tracker"
                 />
                 <div className={styles.draftActions}>
-                  <button type="button" className={styles.cancelAdd} onClick={() => setNewDraft(null)}>
+                  <button type="button" className={styles.cancelAdd} onClick={cancelAdd}>
                     Cancel
                   </button>
                   <button type="button" className={styles.confirmAdd} onClick={confirmAdd}>
@@ -403,14 +415,15 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
                   <button
                     type="button"
                     className={styles.addTracker}
-                    onClick={() =>
+                    onClick={() => {
+                      setNewError(null);
                       setNewDraft({
                         name: "",
                         unit: "",
                         target: "",
                         colour: nextColour(settings.trackers),
-                      })
-                    }
+                      });
+                    }}
                   >
                     + Add tracker
                   </button>
