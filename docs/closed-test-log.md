@@ -1,42 +1,48 @@
 # Closed test log
 
-Running record of the TrackRyte closed test, kept so the production-access
-application (unlocks ~day 15) can be answered with specifics instead of
-generalities. Add entries as they happen — feedback, fixes, releases, tester
-count changes.
+Notes from the TrackRyte closed test. The point of keeping this is the
+production-access form that unlocks around day 15 asks what happened during
+testing, and I'd rather answer from notes than from memory. New stuff goes at
+the bottom.
 
-## Test setup
+## Who's testing
 
-- **Recruited:** 15 testers, personal contacts of the developer, invited
-  individually via message with the opt-in link. All real Android phone
-- **Audience:** adults who already track daily numbers by hand (calories,
-  water, medication) and want a private, offline tool.
-- **Feedback channel:** direct messages to the developer.
+15 testers, all people I know, invited one at a time by message with the opt-in
+link. Everyone's on a real Android phone. They're the kind of people the app is
+for: adults who already track some daily number by hand, whether that's
+calories, water or medication, and want something private that works offline.
+Feedback comes back to me over DM.
 
 ## Timeline
 
-### 2026-08-09 — v1 (versionCode 1) submitted
-First release to closed testing. Internal testing track used first to verify
-the store install flow end-to-end on the developer's own device.
+### 2026-08-09 — v1 out to closed testing
 
-### 2026-08-10 — bug: settings dialog opened off-screen (found in testing)
-With 8 trackers, the settings dialog opened outside the visible screen on
-phones — the layout viewport inflated because off-screen tracker cards
-carried intrinsic width. Diagnosed and fixed the same day (inputs no longer
-contribute intrinsic width; dialog pins to the visual viewport). Also fixed
-in the same session: target/unit fields were cramped on slimmer screens
-(now a 50/50 split, from tester feedback).
+versionCode 1, first build on the closed track. I pushed it through the internal
+testing track first so I could install it from the store on my own phone and
+check the whole flow worked before real testers touched it.
 
-### 2026-08-11 — testers joining; feature work from feedback
-6 testers installed on day one, remainder being chased. Built from early
-feedback: an appearance setting (System / Light / Dark — tester preferred
-the dark look everywhere), and a Follow-on-Facebook link in Settings.
-Queued for v2.
+### 2026-08-10 — settings dialog opening off-screen
 
-<!-- Template for new entries:
+Found in testing. With 8 trackers set up, the settings dialog was opening
+outside the visible screen. Turned out the off-screen tracker cards still
+carried intrinsic width, which inflated the layout viewport and threw the
+centering off. Fixed it the same day: inputs no longer add intrinsic width, and
+the dialog now pins to the visual viewport.
 
-### YYYY-MM-DD — what happened
-Feedback received / bug found / release shipped, and what changed because
-of it.
+While I was in there I also fixed the target and unit fields being cramped on
+narrower phones (samsung flip). A tester flagged it. They're a 50/50 split now.
+
+### 2026-08-11 — testers installing, first feature requests
+
+Two things came out of early feedback and are queued for v2:
+
+- An appearance setting (System / Light / Dark). A tester wanted the dark look
+  everywhere, not just where the system decided.
+- A Follow-on-Facebook link in Settings.
+
+<!-- New entry template:
+
+### YYYY-MM-DD — short heading
+What happened: feedback, a bug, a release. And what changed because of it.
 
 -->
