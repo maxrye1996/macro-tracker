@@ -23,7 +23,9 @@ import {
   MAX_TRACKERS,
   nextColour,
   sanitiseName,
+  SUGGESTIONS,
   VALUE_MAX,
+  type Suggestion,
   type Tracker,
 } from "@/lib/trackers";
 import { TrackerFields, type TrackerDraftValues } from "./TrackerFields";
@@ -111,6 +113,27 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
   const active = settings.trackers.filter((t) => !t.archived);
   const archived = settings.trackers.filter((t) => t.archived);
   const dayCount = state.loggedDays.length;
+
+  // Suggestions the user hasn't already got a tracker for (active or archived),
+  // so the same name is never offered twice.
+  const remainingSuggestions = useMemo(() => {
+    const taken = new Set(settings.trackers.map((t) => t.name.trim().toLowerCase()));
+    return SUGGESTIONS.filter((s) => !taken.has(s.name.toLowerCase()));
+  }, [settings.trackers]);
+
+  // Starts a new-tracker draft prefilled from a suggestion. Name and unit come
+  // from the suggestion; the target is left blank for the user to set, same as
+  // the first-run flow — the app ships no recommended values.
+  const startSuggestion = (suggestion: Suggestion) => {
+    setNewDraft({
+      name: suggestion.name,
+      unit: suggestion.unit,
+      target: "",
+      colour: settings.trackers.some((t) => t.colour === suggestion.colour)
+        ? nextColour(settings.trackers)
+        : suggestion.colour,
+    });
+  };
 
   // Counting scans every logged day, so only do it when the section is shown.
   // `countEntries` reads the store directly rather than taking arguments, so
@@ -357,20 +380,41 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
               </>
             ) : (
               settings.trackers.length < MAX_TRACKERS && (
-                <button
-                  type="button"
-                  className={styles.addTracker}
-                  onClick={() =>
-                    setNewDraft({
-                      name: "",
-                      unit: "",
-                      target: "",
-                      colour: nextColour(settings.trackers),
-                    })
-                  }
-                >
-                  + Add tracker
-                </button>
+                <>
+                  {remainingSuggestions.length > 0 && (
+                    <div className={styles.suggestChips}>
+                      {remainingSuggestions.map((suggestion) => (
+                        <button
+                          key={suggestion.name}
+                          type="button"
+                          className={styles.suggestChip}
+                          style={{ ["--tint" as string]: colourVar(suggestion.colour) }}
+                          onClick={() => startSuggestion(suggestion)}
+                        >
+                          <span className={styles.suggestDot} aria-hidden="true" />
+                          {suggestion.name}
+                          {suggestion.unit && (
+                            <span className={styles.suggestUnit}>{suggestion.unit}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className={styles.addTracker}
+                    onClick={() =>
+                      setNewDraft({
+                        name: "",
+                        unit: "",
+                        target: "",
+                        colour: nextColour(settings.trackers),
+                      })
+                    }
+                  >
+                    + Add tracker
+                  </button>
+                </>
               )
             )}
           </div>

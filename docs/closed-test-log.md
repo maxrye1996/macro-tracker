@@ -40,6 +40,15 @@ Two things came out of early feedback and are queued for v2:
   everywhere, not just where the system decided.
 - A Follow-on-Facebook link in Settings.
 
+### 2026-08-12 — v0.0.3, and reworking the suggestions
+
+Bundled everything up into 0.0.3 for the closed track (0.0.2 never went out on
+its own, so its changes ride along here). Also reworked the starter suggestions
+around who's actually testing: dropped Steps and the macro breakdowns (Carbs,
+Fat, Sugar, Salt), renamed Caffeine to Coffee measured in cups, and added Baby
+feeds (oz) and Creatine (doses). The suggestions now show up in the Settings
+add-tracker screen too, not just on first run.
+
 <!-- New entry template:
 
 ### YYYY-MM-DD — short heading

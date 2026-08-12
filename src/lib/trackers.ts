@@ -123,12 +123,9 @@ export const SUGGESTIONS: readonly Suggestion[] = [
   { name: "Protein", unit: "g", colour: "blue" },
   { name: "Fibre", unit: "g", colour: "green" },
   { name: "Water", unit: "ml", colour: "cyan" },
-  { name: "Carbs", unit: "g", colour: "violet" },
-  { name: "Fat", unit: "g", colour: "rose" },
-  { name: "Sugar", unit: "g", colour: "rose" },
-  { name: "Salt", unit: "g", colour: "slate" },
-  { name: "Steps", unit: "", colour: "lime" },
-  { name: "Caffeine", unit: "mg", colour: "amber" },
+  { name: "Coffee", unit: "cups", colour: "violet" },
+  { name: "Baby feeds", unit: "oz", colour: "rose" },
+  { name: "Creatine", unit: "doses", colour: "lime" },
 ];
 
 /** Picks the next palette colour not already in use, so new trackers differ. */

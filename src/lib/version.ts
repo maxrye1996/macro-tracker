@@ -7,7 +7,7 @@
  *
  * Bump this, add a CHANGELOG.md entry, then build. Nothing else to edit.
  */
-export const VERSION = "0.0.2";
+export const VERSION = "0.0.3";
 
 /**
  * Google Play needs a monotonically increasing integer per upload and will

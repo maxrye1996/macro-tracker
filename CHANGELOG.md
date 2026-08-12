@@ -7,10 +7,17 @@ and `npm run sync` both call). Bump the constant, add an entry here, build.
 Play Store `versionCode` is derived from the version: `0.0.2` is 2, `0.1.0`
 is 100, `1.2.3` is 10203.
 
-## 0.0.2 — unreleased
+## 0.0.3 — 2026-08-12
 
-Fixes found during closed testing, plus the first requests from testers.
+Everything since the first closed-test build: fixes found in testing and the
+first round of tester requests. (0.0.2 was never released on its own — its
+changes ship here.)
 
+- **Reworked the starter suggestions.** Dropped Steps, Carbs, Fat, Sugar and
+  Salt. Renamed Caffeine to Coffee, measured in cups. Added Baby feeds (oz) and
+  Creatine (doses). Every suggestion still ships with a blank target.
+- **Suggestions now appear when adding a tracker in Settings,** not just on
+  first run. Ones you already have a tracker for are hidden.
 - **Fixed: settings opened off-screen with several trackers.** With more than
   a few trackers the page's layout viewport grew wider than the screen, and
   the settings dialog centred itself in that inflated area. Text inputs no

@@ -116,6 +116,44 @@
   background: var(--surface);
 }
 
+.suggestChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 2px;
+}
+
+.suggestChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 550;
+  transition: transform 120ms ease;
+}
+
+.suggestChip:active {
+  transform: scale(0.96);
+}
+
+.suggestDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tint);
+}
+
+.suggestUnit {
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 400;
+}
+
 .draftActions {
   display: flex;
   gap: 8px;
