@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { csvFilename } from "@/lib/csv";
 import type { Settings } from "@/lib/schema";
 import { IS_MOBILE_BUILD } from "@/lib/target";
+import { shareCsvNatively } from "@/lib/native-export";
 import { getThemePref, setThemePref, type ThemePref } from "@/lib/theme";
 import { VERSION } from "@/lib/version";
 import {
@@ -225,12 +226,26 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
     setStatus({ tone: "info", text: `${sanitiseName(newDraft.name)} added.` });
   };
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
     const csv = buildExport();
     if (!csv) {
       setStatus({ tone: "error", text: "Nothing to export yet." });
       return;
     }
+
+    // The webview can't download a blob: URL, so the packaged app writes the
+    // file and opens the native share sheet instead.
+    if (IS_MOBILE_BUILD) {
+      const shared = await shareCsvNatively(csv, csvFilename());
+      if (shared) {
+        setStatus({ tone: "info", text: `Exported ${dayCount} day${dayCount === 1 ? "" : "s"}.` });
+      } else {
+        setCsvText(csv);
+        setStatus({ tone: "info", text: "Couldn't open the share sheet — copy the text below." });
+      }
+      return;
+    }
+
     try {
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);

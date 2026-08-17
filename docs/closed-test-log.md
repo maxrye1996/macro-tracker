@@ -56,6 +56,16 @@ message at the very top of the Settings panel, nowhere near the button you'd
 just tapped. Moved it onto the tracker's own card, above the Cancel and Add
 tracker buttons, and it clears as you start typing.
 
+### 2026-08-17 — v0.0.5, export fix in the app
+
+Tester reported Export CSV worked fine on the website but did nothing in the
+installed app. The Android webview can't handle the blob download a browser
+does, and it failed silently, so the app even claimed it had exported. Switched
+the app to write the file and open the native share sheet (Save to Files, Drive,
+email, and so on); the web export is untouched. This needed two Capacitor
+plugins (Filesystem and Share), so it's the first build that's more than a
+straight web-into-webview package.
+
 <!-- New entry template:
 
 ### YYYY-MM-DD — short heading

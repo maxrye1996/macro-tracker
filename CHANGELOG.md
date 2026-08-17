@@ -7,6 +7,15 @@ and `npm run sync` both call). Bump the constant, add an entry here, build.
 Play Store `versionCode` is derived from the version: `0.0.2` is 2, `0.1.0`
 is 100, `1.2.3` is 10203.
 
+## 0.0.5 — 2026-08-17
+
+- **Fixed: Export CSV did nothing in the installed app.** The webview can't save
+  a `blob:` download the way a browser can, so the button reported success but
+  produced no file. The app now writes the CSV and opens the system share sheet,
+  so you can save the backup to Files, Drive, email or anywhere else. The web
+  export is unchanged, and no network is involved — the share happens entirely
+  on-device.
+
 ## 0.0.4 — 2026-08-12
 
 - **Fixed: add-tracker validation appeared at the top of Settings.** When a new

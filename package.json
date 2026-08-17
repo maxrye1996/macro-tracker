@@ -1,6 +1,6 @@
 {
   "name": "trackryte",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,6 +16,8 @@
     "android": "npm run sync && cap open android"
   },
   "dependencies": {
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/share": "^8.0.1",
     "@vercel/analytics": "^2.0.1",
     "next": "16.2.12",
     "react": "19.2.8",
