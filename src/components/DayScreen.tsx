@@ -14,9 +14,10 @@ interface Props {
   readonly state: AppState;
   readonly settings: Settings;
   readonly onOpenSettings: () => void;
+  readonly onOpenHistory: () => void;
 }
 
-export function DayScreen({ state, settings, onOpenSettings }: Props) {
+export function DayScreen({ state, settings, onOpenSettings, onOpenHistory }: Props) {
   const [announcement, setAnnouncement] = useState("");
   const { day, viewDate, today } = state;
 
@@ -42,14 +43,24 @@ export function DayScreen({ state, settings, onOpenSettings }: Props) {
         <h1 className={styles.brand}>
           <Brand />
         </h1>
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={onOpenSettings}
-          aria-label="Settings"
-        >
-          <GearIcon />
-        </button>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={onOpenHistory}
+            aria-label="History"
+          >
+            <ChartIcon />
+          </button>
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={onOpenSettings}
+            aria-label="Settings"
+          >
+            <GearIcon />
+          </button>
+        </div>
       </header>
 
       {!state.storageOk && (
@@ -174,6 +185,20 @@ function DayNav({ viewDate, today }: { readonly viewDate: DayKey; readonly today
         ›
       </button>
     </nav>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 19V5M4 19h16M8 16v-4m4 4V8m4 8v-6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

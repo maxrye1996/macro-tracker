@@ -1,7 +1,14 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { colourVar, formatAmount, formatWithUnit, VALUE_MAX, type Tracker } from "@/lib/trackers";
+import {
+  colourVar,
+  formatAmount,
+  formatWithUnit,
+  isGoalMet,
+  VALUE_MAX,
+  type Tracker,
+} from "@/lib/trackers";
 import type { AddResult } from "@/lib/store";
 import { Thermometer } from "./Thermometer";
 import styles from "./TrackerCard.module.css";
@@ -56,11 +63,37 @@ export function TrackerCard({ tracker, value, onAdd, onAdded }: Props) {
     inputRef.current?.focus();
   };
 
+  // Positive means still short of the target; negative means past it.
   const remaining = Math.round((tracker.target - value) * 10) / 10;
+  const isGoal = tracker.direction === "goal";
+  const met = isGoalMet(tracker, value);
+
+  // A limit frames going over as a warning; a goal frames reaching or beating
+  // the number as the win.
+  let statusText: string;
+  let statusTone: "" | "over" | "met";
+  if (isGoal) {
+    if (remaining > 0) {
+      statusText = `${formatAmount(remaining)} to go`;
+      statusTone = "";
+    } else if (remaining === 0) {
+      statusText = "Goal reached";
+      statusTone = "met";
+    } else {
+      statusText = `${formatAmount(-remaining)} over target`;
+      statusTone = "met";
+    }
+  } else if (remaining >= 0) {
+    statusText = `${formatAmount(remaining)} left`;
+    statusTone = "";
+  } else {
+    statusText = `${formatAmount(-remaining)} over`;
+    statusTone = "over";
+  }
 
   return (
     <section
-      className={styles.card}
+      className={`${styles.card}${met ? ` ${styles.goalMet}` : ""}`}
       style={{ ["--tint" as string]: tint }}
       aria-labelledby={`${baseId}-label`}
     >
@@ -72,6 +105,7 @@ export function TrackerCard({ tracker, value, onAdd, onAdded }: Props) {
         value={value}
         target={tracker.target}
         tint={tint}
+        direction={tracker.direction}
         label={`${tracker.name}: ${formatAmount(value)} of ${formatWithUnit(
           tracker.target,
           tracker.unit,
@@ -81,8 +115,12 @@ export function TrackerCard({ tracker, value, onAdd, onAdded }: Props) {
       <p className={styles.readout}>
         <span className={styles.value}>{formatAmount(value)}</span>
         <span className={styles.target}>of {formatWithUnit(tracker.target, tracker.unit)}</span>
-        <span className={`${styles.remaining}${remaining < 0 ? ` ${styles.over}` : ""}`}>
-          {remaining >= 0 ? `${formatAmount(remaining)} left` : `${formatAmount(-remaining)} over`}
+        <span
+          className={`${styles.remaining}${
+            statusTone === "over" ? ` ${styles.over}` : statusTone === "met" ? ` ${styles.met}` : ""
+          }`}
+        >
+          {statusText}
         </span>
       </p>
 

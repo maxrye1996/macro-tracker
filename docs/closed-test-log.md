@@ -66,6 +66,25 @@ email, and so on); the web export is untouched. This needed two Capacitor
 plugins (Filesystem and Share), so it's the first build that's more than a
 straight web-into-webview package.
 
+### 2026-08-17 — v0.0.6, goals vs limits
+
+Two testers were really after the same thing: not everything is a ceiling. One
+wanted to log a single daily creatine dose, another tracks dog walks with a
+minimum of one a day and is pleased when they manage two. So a tracker can now
+be a goal (reach at least the target) instead of a limit (stay under it). A goal
+counts down "to go", flips to "N over target" once you pass it, and the card
+goes green when it's met. Kept it backwards compatible on purpose: everything
+that already exists stays a limit and old backups still import, so nobody's
+current setup changes.
+
+### 2026-08-17 — v0.0.7, history graph
+
+A tester asked to see history as a graph rather than stepping through it day by
+day. Added a History screen (chart icon, top right): pick one active tracker and
+it plots the daily totals over time, with a dashed line at the target. One
+tracker at a time for now. Drawn by hand as an SVG, so there's still no chart
+library and nothing that touches the network.
+
 <!-- New entry template:
 
 ### YYYY-MM-DD — short heading

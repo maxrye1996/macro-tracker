@@ -78,3 +78,10 @@
   background: var(--surface-2);
   color: var(--text-faint);
 }
+
+/* A met goal: ring the bulb green so the win reads at a glance, matching the
+   card's green border. */
+.met .bulb {
+  border-color: var(--c-green);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-green) 35%, transparent);
+}

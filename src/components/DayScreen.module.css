@@ -36,6 +36,17 @@
   background: var(--surface-2);
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  /* Nudge the button group, not each button, to the screen edge. */
+  margin-right: -8px;
+}
+
+.actions .iconButton {
+  margin-right: 0;
+}
+
 /* --- day navigation --- */
 
 .dayNav {

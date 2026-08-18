@@ -124,6 +124,50 @@
   color: var(--danger);
 }
 
+.direction {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 38px;
+}
+
+.dirToggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 2px;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.dirButton {
+  min-height: 28px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.dirButtonActive {
+  background: var(--tint);
+  color: var(--bg);
+}
+
+.dirHint {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+@media (prefers-color-scheme: light) {
+  .dirButtonActive {
+    color: #fff;
+  }
+}
+
 .palette {
   display: flex;
   flex-wrap: wrap;

@@ -5,9 +5,9 @@ import type { DayLog } from "./schema";
 import type { Tracker } from "./trackers";
 
 const trackers: Tracker[] = [
-  { id: "t-cal", name: "Calories", unit: "kcal", target: 2000, colour: "amber", archived: false },
-  { id: "t-water", name: "Water", unit: "ml", target: 2500, colour: "cyan", archived: false },
-  { id: "t-old", name: "Fibre", unit: "g", target: 30, colour: "green", archived: true },
+  { id: "t-cal", name: "Calories", unit: "kcal", target: 2000, colour: "amber", direction: "limit", archived: false },
+  { id: "t-water", name: "Water", unit: "ml", target: 2500, colour: "cyan", direction: "goal", archived: false },
+  { id: "t-old", name: "Fibre", unit: "g", target: 30, colour: "green", direction: "limit", archived: true },
 ];
 
 const days: DayLog[] = [
@@ -165,6 +165,7 @@ test("a tracker name that a spreadsheet would execute is neutralised on export",
       unit: "@SUM",
       target: 10,
       colour: "amber",
+      direction: "limit",
       archived: false,
     },
   ];
@@ -188,6 +189,7 @@ test("a name containing a comma or a quote survives a round trip", () => {
       unit: "g",
       target: 6,
       colour: "slate",
+      direction: "limit",
       archived: false,
     },
   ];
@@ -207,4 +209,24 @@ test("a file with an unknown header is rejected, not guessed at", () => {
   const result = parseCsv(unknown);
   assert.ok(!result.ok);
   assert.match(result.error, /Unrecognised file/);
+});
+
+test("a pre-0.0.6 backup without a direction column imports as limits", () => {
+  // The 9-column header shipped up to 0.0.5. It must still restore cleanly, so
+  // an existing tester's backup is never rejected after the update.
+  const legacy = [
+    "type,date,tracker_id,name,unit,amount,logged_at,colour,archived",
+    "tracker,,t-cal,Calories,kcal,2000,,amber,false",
+  ].join("\r\n");
+
+  const result = parseCsv(legacy);
+  assert.ok(result.ok, result.ok ? "" : result.error);
+  assert.equal(result.value.trackers[0]?.direction, "limit");
+});
+
+test("the direction column round-trips through export and import", () => {
+  const result = parseCsv(exportCsv(trackers, days));
+  assert.ok(result.ok);
+  assert.equal(result.value.trackers.find((t) => t.id === "t-water")?.direction, "goal");
+  assert.equal(result.value.trackers.find((t) => t.id === "t-cal")?.direction, "limit");
 });

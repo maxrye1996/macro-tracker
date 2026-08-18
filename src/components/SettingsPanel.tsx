@@ -21,6 +21,7 @@ import {
 } from "@/lib/store";
 import {
   colourVar,
+  DEFAULT_DIRECTION,
   MAX_TRACKERS,
   nextColour,
   sanitiseName,
@@ -49,6 +50,7 @@ function toDraft(tracker: Tracker): TrackerDraftValues {
     unit: tracker.unit,
     target: String(tracker.target),
     colour: tracker.colour,
+    direction: tracker.direction,
   };
 }
 
@@ -137,6 +139,7 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
       colour: settings.trackers.some((t) => t.colour === suggestion.colour)
         ? nextColour(settings.trackers)
         : suggestion.colour,
+      direction: DEFAULT_DIRECTION,
     });
   };
 
@@ -160,6 +163,7 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
       unit: draft.unit,
       target: draft.target,
       colour: draft.colour,
+      direction: draft.direction,
     });
 
     if (result !== "added") {
@@ -208,6 +212,7 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
       unit: newDraft.unit,
       target: newDraft.target,
       colour: newDraft.colour,
+      direction: newDraft.direction,
     });
     if (result === "full") {
       setNewError(`You can have at most ${MAX_TRACKERS} trackers.`);
@@ -437,6 +442,7 @@ export function SettingsPanel({ state, settings, onClose }: Props) {
                         unit: "",
                         target: "",
                         colour: nextColour(settings.trackers),
+                        direction: DEFAULT_DIRECTION,
                       });
                     }}
                   >

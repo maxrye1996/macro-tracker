@@ -5,6 +5,7 @@ import { createId } from "@/lib/schema";
 import {
   COLOUR_IDS,
   colourVar,
+  DEFAULT_DIRECTION,
   MAX_TRACKERS,
   normaliseAmount,
   sanitiseName,
@@ -56,6 +57,7 @@ export function Setup({ onDone }: { readonly onDone: (trackers: readonly Tracker
         colour: prev.some((d) => d.colour === suggestion.colour)
           ? nextColour(prev)
           : suggestion.colour,
+        direction: DEFAULT_DIRECTION,
       },
     ]);
   };
@@ -64,7 +66,14 @@ export function Setup({ onDone }: { readonly onDone: (trackers: readonly Tracker
     if (atLimit) return;
     setDrafts((prev) => [
       ...prev,
-      { key: createId(), name: "", unit: "", target: "", colour: nextColour(prev) },
+      {
+        key: createId(),
+        name: "",
+        unit: "",
+        target: "",
+        colour: nextColour(prev),
+        direction: DEFAULT_DIRECTION,
+      },
     ]);
   };
 
@@ -92,6 +101,7 @@ export function Setup({ onDone }: { readonly onDone: (trackers: readonly Tracker
       unit: sanitiseUnit(d.unit),
       target: normaliseAmount(d.target) as number,
       colour: d.colour,
+      direction: d.direction,
       archived: false,
     }));
     onDone(trackers);

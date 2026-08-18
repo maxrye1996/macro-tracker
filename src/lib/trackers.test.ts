@@ -81,8 +81,8 @@ test("formatWithUnit omits the space when a tracker has no unit", () => {
 
 test("nextColour avoids colours already in use", () => {
   const used: Tracker[] = [
-    { id: "1", name: "A", unit: "", target: 1, colour: "amber", archived: false },
-    { id: "2", name: "B", unit: "", target: 1, colour: "blue", archived: false },
+    { id: "1", name: "A", unit: "", target: 1, colour: "amber", direction: "limit", archived: false },
+    { id: "2", name: "B", unit: "", target: 1, colour: "blue", direction: "limit", archived: false },
   ];
   const picked = nextColour(used);
   assert.ok(picked !== "amber" && picked !== "blue");

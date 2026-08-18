@@ -42,6 +42,26 @@ export function colourVar(colour: ColourId): string {
   return `var(--c-${colour})`;
 }
 
+/**
+ * What the target *means*.
+ *
+ * - `limit`: stay at or under it (calories, sugar, caffeine). Going over is a
+ *   warning.
+ * - `goal`: reach at least it (water, protein, a daily creatine dose, dog
+ *   walks). Meeting or beating it is the win.
+ *
+ * Anything without an explicit direction — every tracker from before this
+ * existed, and every older backup — is treated as a `limit`, so no stored data
+ * changes meaning. `DEFAULT_DIRECTION` is the single source of that default.
+ */
+export type TrackerDirection = "limit" | "goal";
+
+export const DEFAULT_DIRECTION: TrackerDirection = "limit";
+
+export function isDirection(value: unknown): value is TrackerDirection {
+  return value === "limit" || value === "goal";
+}
+
 export interface Tracker {
   readonly id: string;
   readonly name: string;
@@ -49,11 +69,17 @@ export interface Tracker {
   readonly unit: string;
   readonly target: number;
   readonly colour: ColourId;
+  readonly direction: TrackerDirection;
   /**
    * Archived trackers disappear from the daily view but keep every entry ever
    * logged against them, and still appear in exports.
    */
   readonly archived: boolean;
+}
+
+/** True when a goal tracker has reached (or beaten) its target. */
+export function isGoalMet(tracker: Tracker, value: number): boolean {
+  return tracker.direction === "goal" && value >= tracker.target;
 }
 
 /**

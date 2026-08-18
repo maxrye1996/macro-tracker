@@ -7,6 +7,24 @@ and `npm run sync` both call). Bump the constant, add an entry here, build.
 Play Store `versionCode` is derived from the version: `0.0.2` is 2, `0.1.0`
 is 100, `1.2.3` is 10203.
 
+## 0.0.7 — 2026-08-17
+
+- **Added: history graph.** A new History view — the chart icon, top right —
+  plots one tracker's daily totals over time as a line chart, with a dashed
+  line marking its target. Pick any active tracker; one at a time for now.
+  Drawn as inline SVG with no charting library, so the app still downloads
+  nothing and makes no network requests.
+
+## 0.0.6 — 2026-08-17
+
+- **Added: goals as well as limits.** A tracker can now be a *goal* (reach at
+  least the target — water, a daily creatine dose, dog walks) rather than a
+  *limit* (stay under it — calories, caffeine). A goal reads as "N to go", then
+  "N over target" once you pass it, and its card turns green when met. Choose
+  per tracker in first-run setup and in Settings. Every existing tracker, and
+  every older backup, stays a limit, so nothing about an existing install
+  changes.
+
 ## 0.0.5 — 2026-08-17
 
 - **Fixed: Export CSV did nothing in the installed app.** The webview can't save

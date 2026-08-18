@@ -39,8 +39,16 @@ test("parseTracker accepts a well-formed tracker", () => {
     unit: "kcal",
     target: 2000,
     colour: "amber",
+    // Absent from the input, so it defaults to a limit — the backwards-compat
+    // guarantee for trackers stored before goals existed.
+    direction: "limit",
     archived: false,
   });
+});
+
+test("parseTracker keeps a stored goal direction and rejects an unknown one", () => {
+  assert.equal(parseTracker({ ...validTracker, direction: "goal" })?.direction, "goal");
+  assert.equal(parseTracker({ ...validTracker, direction: "sideways" })?.direction, "limit");
 });
 
 test("parseTracker rejects a tracker with no name or no usable target", () => {

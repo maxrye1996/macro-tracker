@@ -11,7 +11,9 @@
 import { isDayKey, type DayKey } from "./date";
 import {
   DEFAULT_COLOUR,
+  DEFAULT_DIRECTION,
   isColourId,
+  isDirection,
   MAX_TRACKERS,
   normaliseAmount,
   sanitiseName,
@@ -79,6 +81,9 @@ export function parseTracker(value: unknown): Tracker | null {
     unit: sanitiseUnit(raw["unit"]),
     target,
     colour: isColourId(raw["colour"]) ? raw["colour"] : DEFAULT_COLOUR,
+    // Absent on data written before goals existed — defaults to a limit, so an
+    // old install keeps behaving exactly as it did.
+    direction: isDirection(raw["direction"]) ? raw["direction"] : DEFAULT_DIRECTION,
     archived: raw["archived"] === true,
   };
 }
@@ -116,6 +121,7 @@ export function serialiseSettings(settings: Settings): unknown {
       unit: t.unit,
       target: t.target,
       colour: t.colour,
+      direction: t.direction,
       archived: t.archived,
     })),
   };

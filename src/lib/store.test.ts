@@ -41,6 +41,7 @@ const {
   addTracker,
   buildExport,
   countEntries,
+  dailyTotalsFor,
   deleteEverything,
   getSnapshot,
   goToDate,
@@ -243,7 +244,7 @@ test("trackers can be reordered, and moves past either end do nothing", () => {
 
 test("setTrackers replaces the whole list, as first-run setup does", () => {
   setTrackers([
-    { id: "a", name: "Steps", unit: "", target: 8000, colour: "lime", archived: false },
+    { id: "a", name: "Steps", unit: "", target: 8000, colour: "lime", direction: "goal", archived: false },
   ]);
   assert.equal(getSnapshot().settings?.trackers.length, 1);
   assert.equal(getSnapshot().settings?.trackers[0]?.name, "Steps");
@@ -262,6 +263,32 @@ test("days are isolated from each other", () => {
   shiftDay(1);
   assert.equal(totalFor("Calories"), 450, "today is unchanged");
   assert.equal(getSnapshot().loggedDays.length, 2);
+});
+
+test("dailyTotalsFor returns one total per logged day, oldest first, skipping days with none", () => {
+  seed();
+  const cal = trackerIdByName("Calories");
+  const water = trackerIdByName("Water");
+
+  // Today: two Calories entries (sum to one daily total) and a Water entry.
+  addEntry(cal, 450);
+  addEntry(cal, 550);
+  addEntry(water, 500);
+
+  // Yesterday: Water only, so Calories has a gap there.
+  shiftDay(-1);
+  addEntry(water, 300);
+
+  const calSeries = dailyTotalsFor(cal);
+  assert.equal(calSeries.length, 1, "only the day Calories was logged appears");
+  assert.equal(calSeries[0]?.total, 1000, "same-day entries are summed");
+
+  const waterSeries = dailyTotalsFor(water);
+  assert.equal(waterSeries.length, 2);
+  assert.ok(
+    waterSeries[0]!.date < waterSeries[1]!.date,
+    "points are ordered oldest first",
+  );
 });
 
 test("the view cannot be moved into the future", () => {

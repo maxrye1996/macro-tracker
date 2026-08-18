@@ -7,6 +7,7 @@ import {
   NAME_MAX,
   UNIT_MAX,
   type ColourId,
+  type TrackerDirection,
 } from "@/lib/trackers";
 import styles from "./TrackerFields.module.css";
 
@@ -15,7 +16,17 @@ export interface TrackerDraftValues {
   readonly unit: string;
   readonly target: string;
   readonly colour: ColourId;
+  readonly direction: TrackerDirection;
 }
+
+const DIRECTION_OPTIONS: readonly {
+  value: TrackerDirection;
+  label: string;
+  hint: string;
+}[] = [
+  { value: "limit", label: "Limit", hint: "Stay at or under the target." },
+  { value: "goal", label: "Goal", hint: "Reach at least the target." },
+];
 
 interface Props {
   readonly value: TrackerDraftValues;
@@ -158,6 +169,30 @@ export function TrackerFields({
           onChange={(e) => onChange({ unit: e.target.value })}
           onBlur={() => onCommit?.()}
         />
+      </div>
+
+      <div className={styles.direction}>
+        <div className={styles.dirToggle} role="group" aria-label="Is the target a limit or a goal?">
+          {DIRECTION_OPTIONS.map(({ value: dir, label }) => (
+            <button
+              key={dir}
+              type="button"
+              className={`${styles.dirButton}${
+                value.direction === dir ? ` ${styles.dirButtonActive}` : ""
+              }`}
+              aria-pressed={value.direction === dir}
+              onClick={() => {
+                onChange({ direction: dir });
+                onCommit?.({ direction: dir });
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className={styles.dirHint}>
+          {DIRECTION_OPTIONS.find((o) => o.value === value.direction)?.hint}
+        </span>
       </div>
 
       {paletteOpen && (

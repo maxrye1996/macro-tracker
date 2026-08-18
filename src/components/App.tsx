@@ -16,12 +16,14 @@ import {
 import { Brand } from "./Brand";
 import { Setup } from "./Setup";
 import { SettingsPanel } from "./SettingsPanel";
+import { HistoryScreen } from "./HistoryScreen";
 import { DayScreen } from "./DayScreen";
 import styles from "./App.module.css";
 
 export function App() {
   const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Storage is read after mount, never during render, so the prerendered HTML
   // and the first client render always match.
@@ -89,12 +91,20 @@ export function App() {
         state={state}
         settings={state.settings}
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenHistory={() => setHistoryOpen(true)}
       />
       {settingsOpen && (
         <SettingsPanel
           state={state}
           settings={state.settings}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+      {historyOpen && (
+        <HistoryScreen
+          state={state}
+          settings={state.settings}
+          onClose={() => setHistoryOpen(false)}
         />
       )}
     </>

@@ -13,7 +13,9 @@ import { createId, MAX_ENTRIES_PER_DAY, type DayLog, type Entry } from "./schema
 import { middayOn } from "./schema";
 import {
   DEFAULT_COLOUR,
+  DEFAULT_DIRECTION,
   isColourId,
+  isDirection,
   MAX_TRACKERS,
   normaliseAmount,
   sanitiseName,
@@ -31,7 +33,20 @@ export const CSV_HEADER = [
   "logged_at",
   "colour",
   "archived",
+  "direction",
 ] as const;
+
+/**
+ * Headers written by earlier versions, still accepted on import so a backup
+ * taken before a column existed restores cleanly. Missing columns fall back to
+ * their defaults (a `direction`-less file imports as all limits).
+ */
+const LEGACY_HEADERS: readonly string[] = [
+  // Pre-0.0.6: no `direction` column.
+  ["type", "date", "tracker_id", "name", "unit", "amount", "logged_at", "colour", "archived"].join(
+    ",",
+  ),
+];
 
 /** Refuse anything implausible for a personal log. */
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
@@ -67,6 +82,7 @@ export function exportCsv(trackers: readonly Tracker[], days: readonly DayLog[])
         "",
         t.colour,
         t.archived ? "true" : "false",
+        t.direction,
       ]),
     );
   }
@@ -89,6 +105,7 @@ export function exportCsv(trackers: readonly Tracker[], days: readonly DayLog[])
           tracker?.unit ?? "",
           String(entry.amount),
           new Date(entry.at).toISOString(),
+          "",
           "",
           "",
         ]),
@@ -192,7 +209,7 @@ export function parseCsv(text: string): ImportOutcome {
   if (rows.length === 0) return { ok: false, error: "That file is empty." };
 
   const header = (rows[0] ?? []).map((h) => h.trim().toLowerCase()).join(",");
-  if (header !== CSV_HEADER.join(",")) {
+  if (header !== CSV_HEADER.join(",") && !LEGACY_HEADERS.includes(header)) {
     return { ok: false, error: "Unrecognised file. Expected a CSV exported from TrackRyte." };
   }
 
@@ -220,12 +237,15 @@ export function parseCsv(text: string): ImportOutcome {
     }
 
     const colourCell = clean(cells[7]);
+    const directionCell = clean(cells[9]).toLowerCase();
     const tracker: Tracker = {
       id,
       name,
       unit: sanitiseUnit(clean(cells[4])),
       target,
       colour: isColourId(colourCell) ? colourCell : DEFAULT_COLOUR,
+      // Absent in pre-0.0.6 backups; an unknown value falls back to a limit.
+      direction: isDirection(directionCell) ? directionCell : DEFAULT_DIRECTION,
       archived: clean(cells[8]).toLowerCase() === "true",
     };
     trackers.push(tracker);

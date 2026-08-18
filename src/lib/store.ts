@@ -37,6 +37,8 @@ import {
   writeJson,
 } from "./storage";
 import {
+  DEFAULT_DIRECTION,
+  isDirection,
   MAX_TRACKERS,
   nextColour,
   normaliseAmount,
@@ -44,6 +46,7 @@ import {
   sanitiseUnit,
   type ColourId,
   type Tracker,
+  type TrackerDirection,
 } from "./trackers";
 
 export interface AppState {
@@ -190,6 +193,7 @@ export interface TrackerDraft {
   readonly unit: unknown;
   readonly target: unknown;
   readonly colour?: ColourId;
+  readonly direction?: TrackerDirection;
 }
 
 export type TrackerResult = "added" | "invalid" | "full";
@@ -208,6 +212,7 @@ export function addTracker(draft: TrackerDraft): TrackerResult {
     unit: sanitiseUnit(draft.unit),
     target,
     colour: draft.colour ?? nextColour(existing),
+    direction: isDirection(draft.direction) ? draft.direction : DEFAULT_DIRECTION,
     archived: false,
   };
   persistSettings([...existing, tracker]);
@@ -221,7 +226,13 @@ export function setTrackers(trackers: readonly Tracker[]): void {
 
 export function updateTracker(
   id: string,
-  patch: { name?: unknown; unit?: unknown; target?: unknown; colour?: ColourId },
+  patch: {
+    name?: unknown;
+    unit?: unknown;
+    target?: unknown;
+    colour?: ColourId;
+    direction?: TrackerDirection;
+  },
 ): TrackerResult {
   const existing = state.settings?.trackers ?? [];
   const current = existing.find((t) => t.id === id);
@@ -237,6 +248,7 @@ export function updateTracker(
     target,
     unit: patch.unit === undefined ? current.unit : sanitiseUnit(patch.unit),
     colour: patch.colour ?? current.colour,
+    direction: patch.direction ?? current.direction,
   };
   persistSettings(existing.map((t) => (t.id === id ? updated : t)));
   return "added";
@@ -248,6 +260,33 @@ export function hasEntries(trackerId: string): boolean {
     if (loadDay(date).entries.some((e) => e.trackerId === trackerId)) return true;
   }
   return false;
+}
+
+export interface DailyTotal {
+  readonly date: DayKey;
+  readonly total: number;
+}
+
+/**
+ * One total per day that has any entry for this tracker, oldest first, for the
+ * history chart. Days with nothing logged against the tracker are omitted
+ * rather than shown as zero — a gap means "not logged", which is honest for a
+ * personal tracker you don't touch every day. `loggedDays` is already sorted.
+ */
+export function dailyTotalsFor(trackerId: string, snapshot: AppState = state): DailyTotal[] {
+  const out: DailyTotal[] = [];
+  for (const date of snapshot.loggedDays) {
+    let sum = 0;
+    let logged = false;
+    for (const entry of loadDay(date).entries) {
+      if (entry.trackerId === trackerId) {
+        sum += entry.amount;
+        logged = true;
+      }
+    }
+    if (logged) out.push({ date, total: Math.round(sum * 10) / 10 });
+  }
+  return out;
 }
 
 export function countEntries(trackerId: string): number {
